@@ -1,0 +1,117 @@
+11. Recommandations documentées (statut A_VALIDER)
+Chaque recommandation suit le format Constat / Recommandation / Statut. Elle est générée à partir des indicateurs ci-dessus et doit être examinée par un technicien ou un expert métier avant toute action.
+
+REC-01 – EQ-DAK-SIM-06 (FEUX_BORD_PISTE, DAK-SIM SECTEUR-3)
+Constat : rang 1/30, score 78.2/100. Criticité MOYENNE, installé en 2013 (13 ans). 10 incidents dont 9 pannes hors contrôles, 79.4 h d'indisponibilité, MTTR 10.3 h, 7 incident(s) encore EN_COURS. Cause principale : connectique (6 fois : INC-0073, INC-0098, INC-0118, INC-0130, INC-0145, INC-0166). Pièce la plus remplacée : connecteur (3 fois).
+Recommandation : Audit du câblage et des connecteurs du secteur ; contrôle de serrage et d'oxydation lors des prochaines rondes ; vu l'ancienneté, étudier le renouvellement de l'équipement ; clôturer ou relancer les 7 incidents EN_COURS.
+Statut : A_VALIDER par l'expert métier.
+
+REC-02 – EQ-DAK-SIM-08 (FEUX_APPROCHE, DAK-SIM SECTEUR-1)
+Constat : rang 2/30, score 74.2/100. Criticité ELEVEE, installé en 2011 (15 ans). 7 incidents dont 5 pannes hors contrôles, 75.7 h d'indisponibilité, MTTR 6.7 h, 2 incident(s) encore EN_COURS. Aucune cause dominante : chaque type de panne n'apparaît qu'une fois (connectique (INC-0038), humidite (INC-0046), cause_indeterminee (INC-0102), alimentation (INC-0136), lampe_defectueuse (INC-0179)). Pièce la plus remplacée : fusible (2 fois).
+Recommandation : Inspection complète de l'équipement pour rechercher une cause commune aux pannes variées ; vu l'ancienneté, étudier le renouvellement de l'équipement ; informer le responsable de quart (criticité ÉLEVÉE).
+Statut : A_VALIDER par l'expert métier.
+
+REC-03 – EQ-DAK-SIM-02 (FEUX_SEUIL, DAK-SIM SECTEUR-3)
+Constat : rang 3/30, score 71.7/100. Criticité ELEVEE, installé en 2011 (15 ans). 6 incidents dont 6 pannes hors contrôles, 40.3 h d'indisponibilité, MTTR 7.4 h, 1 incident(s) encore EN_COURS. Cause principale : alimentation (2 fois : INC-0031, INC-0125). Pièce la plus remplacée : fusible (1 fois).
+Recommandation : Contrôle de l'alimentation et du régulateur associé (tension, fusibles, protections) ; vu l'ancienneté, étudier le renouvellement de l'équipement ; informer le responsable de quart (criticité ÉLEVÉE).
+Statut : A_VALIDER par l'expert métier.
+
+REC-04 – EQ-NIM-SIM-08 (FEUX_APPROCHE, NIM-SIM SECTEUR-1)
+Constat : rang 4/30, score 68.2/100. Criticité ELEVEE, installé en 2019 (7 ans). 6 incidents dont 5 pannes hors contrôles, 81.8 h d'indisponibilité, MTTR 18.9 h, 2 incident(s) encore EN_COURS. Cause principale : humidite (2 fois : INC-0126, INC-0163). Pièce la plus remplacée : lampe (2 fois).
+Recommandation : Vérifier l'étanchéité des boîtiers et joints ; planifier l'inspection avant la saison des pluies ; informer le responsable de quart (criticité ÉLEVÉE).
+Statut : A_VALIDER par l'expert métier.
+
+REC-05 – EQ-DAK-SIM-07 (FEUX_SEUIL, DAK-SIM SECTEUR-4)
+Constat : rang 5/30, score 66.4/100. Criticité ELEVEE, installé en 2015 (11 ans). 6 incidents dont 6 pannes hors contrôles, 32.3 h d'indisponibilité, MTTR 5.8 h, 2 incident(s) encore EN_COURS. Cause principale : connectique (3 fois : INC-0141, INC-0170, INC-0176). Pièce la plus remplacée : lampe (2 fois).
+Recommandation : Audit du câblage et des connecteurs du secteur ; contrôle de serrage et d'oxydation lors des prochaines rondes ; informer le responsable de quart (criticité ÉLEVÉE).
+Statut : A_VALIDER par l'expert métier.
+
+REC-06 – EQ-DAK-SIM-01 (FEUX_BORD_PISTE, DAK-SIM SECTEUR-2)
+Constat : rang 6/30, score 65.3/100. Criticité ELEVEE, installé en 2020 (6 ans). 5 incidents dont 5 pannes hors contrôles, 72.0 h d'indisponibilité, MTTR 14.4 h, 0 incident(s) encore EN_COURS. Cause principale : cause_indeterminee (2 fois : INC-0057, INC-0084). Pièce la plus remplacée : fusible (2 fois).
+Recommandation : Diagnostic approfondi : la cause n'est pas identifiée, améliorer la saisie des fiches d'intervention ; informer le responsable de quart (criticité ÉLEVÉE).
+Statut : A_VALIDER par l'expert métier.
+
+REC-07 – EQ-DAK-SIM-04 (REGULATEUR_CCR, DAK-SIM SECTEUR-1)
+Constat : rang 7/30, score 60.4/100. Criticité MOYENNE, installé en 2021 (5 ans). 10 incidents dont 8 pannes hors contrôles, 53.2 h d'indisponibilité, MTTR 5.5 h, 1 incident(s) encore EN_COURS. Cause principale : alimentation (4 fois : INC-0003, INC-0008, INC-0066, INC-0099). Pièce la plus remplacée : fusible (4 fois).
+Recommandation : Contrôle de l'alimentation et du régulateur associé (tension, fusibles, protections).
+Statut : A_VALIDER par l'expert métier.
+
+REC-08 – EQ-DAK-SIM-10 (PAPI, DAK-SIM SECTEUR-3)
+Constat : rang 8/30, score 59.5/100. Criticité MOYENNE, installé en 2017 (9 ans). 8 incidents dont 5 pannes hors contrôles, 103.0 h d'indisponibilité, MTTR 14.2 h, 2 incident(s) encore EN_COURS. Cause principale : humidite (2 fois : INC-0129, INC-0161). Pièce la plus remplacée : connecteur (3 fois).
+Recommandation : Vérifier l'étanchéité des boîtiers et joints ; planifier l'inspection avant la saison des pluies.
+Statut : A_VALIDER par l'expert métier.
+
+REC-09 – EQ-NIM-SIM-05 (PAPI, NIM-SIM SECTEUR-2)
+Constat : rang 9/30, score 59.4/100. Criticité ELEVEE, installé en 2017 (9 ans). 5 incidents dont 5 pannes hors contrôles, 31.6 h d'indisponibilité, MTTR 5.4 h, 1 incident(s) encore EN_COURS. Cause principale : usure (2 fois : INC-0132, INC-0174). Pièce la plus remplacée : fusible (1 fois).
+Recommandation : Étudier le renouvellement des composants usés ; prévoir un stock de pièces ; informer le responsable de quart (criticité ÉLEVÉE).
+Statut : A_VALIDER par l'expert métier.
+
+REC-10 – EQ-ABJ-SIM-04 (REGULATEUR_CCR, ABJ-SIM SECTEUR-1)
+Constat : rang 10/30, score 55.6/100. Criticité ELEVEE, installé en 2015 (11 ans). 4 incidents dont 4 pannes hors contrôles, 28.5 h d'indisponibilité, MTTR 5.7 h, 1 incident(s) encore EN_COURS. Cause principale : lampe_defectueuse (2 fois : INC-0029, INC-0147). Pièce la plus remplacée : module (1 fois).
+Recommandation : Remplacement préventif groupé des lampes du lot concerné ; informer le responsable de quart (criticité ÉLEVÉE).
+Statut : A_VALIDER par l'expert métier.
+
+Recommandations transverses
+REC-T1 – Qualité du diagnostic. Constat : 30 incidents sur 180 (16,7 %) ont une cause indéterminée ; c'est la cause principale du site NIM-SIM. Recommandation : rendre la cause obligatoire dans la fiche d'intervention et former les techniciens au diagnostic. Statut : A_VALIDER.
+REC-T2 – Connectique à DAK-SIM. Constat : la connectique est la cause principale du site DAK-SIM (site le plus touché : 73 incidents, 600,4 h, 21 incidents EN_COURS). Recommandation : campagne d'audit de la connectique sur DAK-SIM. Statut : A_VALIDER.
+REC-T3 – Suivi des incidents ouverts. Constat : 44 incidents sont encore EN_COURS alors qu'une intervention a été réalisée 3 h après le début de chacun. Recommandation : revue hebdomadaire des incidents ouverts et clôture systématique après intervention. Statut : A_VALIDER.
+REC-T4 – Fiabilité de la saisie. Constat : 9 incohérences entre la panne et l'action corrective (ex. panne lampe_defectueuse traitée par sechage), 2 durées manquantes, 1 durée négative, 1 doublon. Recommandation : contrôles de saisie automatiques dans la GMAO. Statut : A_VALIDER.
+
+12. Synthèse mensuelle détaillée (complète la section 7)
+Pour chaque mois : incidents, pannes hors contrôles, durée totale, cause principale hors contrôles (ex aequo séparés par /), pièce principale hors « aucune », site le plus touché et numéros d'incidents.
+
+2025-01 : 7 incidents dont 6 pannes hors contrôles ; 41.5 h ; cause principale connectique/lampe_defectueuse ; pièce principale connecteur ; site le plus touché NIM-SIM. Incidents : INC-0027, INC-0052, INC-0081, INC-0099, INC-0130, INC-0139, INC-0163.
+
+2025-02 : 16 incidents dont 13 pannes hors contrôles ; 134.4 h ; cause principale connectique/lampe_defectueuse ; pièce principale lampe ; site le plus touché DAK-SIM. Incidents : INC-0002, INC-0004, INC-0024, INC-0033, INC-0083, INC-0087, INC-0100, INC-0116, INC-0138, INC-0145, INC-0148, INC-0155, INC-0159, INC-0164, INC-0168, INC-0176.
+
+2025-03 : 13 incidents dont 12 pannes hors contrôles ; 93.4 h ; cause principale cause_indeterminee ; pièce principale module ; site le plus touché DAK-SIM. Incidents : INC-0005, INC-0008, INC-0017, INC-0029, INC-0031, INC-0107, INC-0113, INC-0115, INC-0128, INC-0132, INC-0140, INC-0144, INC-0180.
+
+2025-04 : 11 incidents dont 11 pannes hors contrôles ; 69.8 h ; cause principale alimentation/connectique ; pièce principale module ; site le plus touché DAK-SIM. Incidents : INC-0003, INC-0007, INC-0020, INC-0035, INC-0105, INC-0117, INC-0124, INC-0150, INC-0165, INC-0166, INC-0167.
+
+2025-05 : 8 incidents dont 8 pannes hors contrôles ; 45.7 h ; cause principale connectique ; pièce principale fusible ; site le plus touché DAK-SIM. Incidents : INC-0088, INC-0101, INC-0102, INC-0110, INC-0118, INC-0119, INC-0160, INC-0170.
+
+2025-06 : 7 incidents dont 5 pannes hors contrôles ; 53.3 h ; cause principale usure ; pièce principale fusible ; site le plus touché ABJ-SIM. Incidents : INC-0010, INC-0039, INC-0041, INC-0062, INC-0071, INC-0121, INC-0157.
+
+2025-07 : 7 incidents dont 7 pannes hors contrôles ; 28.1 h ; cause principale connectique/lampe_defectueuse ; pièce principale connecteur ; site le plus touché NIM-SIM. Incidents : INC-0040, INC-0042, INC-0073, INC-0090, INC-0091, INC-0104, INC-0123.
+
+2025-08 : 9 incidents dont 8 pannes hors contrôles ; 83.1 h ; cause principale cause_indeterminee/lampe_defectueuse ; pièce principale fusible ; site le plus touché NIM-SIM. Incidents : INC-0013, INC-0046, INC-0074, INC-0079, INC-0084, INC-0096, INC-0097, INC-0153, INC-0172.
+
+2025-09 : 12 incidents dont 9 pannes hors contrôles ; 109.5 h ; cause principale cause_indeterminee/usure ; pièce principale lampe ; site le plus touché NIM-SIM. Incidents : INC-0069, INC-0076, INC-0077, INC-0085, INC-0095, INC-0111, INC-0120, INC-0134, INC-0141, INC-0151, INC-0158, INC-0173.
+
+2025-10 : 10 incidents dont 9 pannes hors contrôles ; 69.0 h ; cause principale alimentation/cause_indeterminee/usure ; pièce principale module ; site le plus touché ABJ-SIM. Incidents : INC-0036, INC-0048, INC-0063, INC-0065, INC-0078, INC-0109, INC-0127, INC-0142, INC-0143, INC-0154.
+
+2025-11 : 6 incidents dont 4 pannes hors contrôles ; 36.8 h ; cause principale humidite ; pièce principale fusible ; site le plus touché DAK-SIM. Incidents : INC-0056, INC-0058, INC-0060, INC-0082, INC-0129, INC-0149.
+
+2025-12 : 18 incidents dont 15 pannes hors contrôles ; 192.3 h ; cause principale connectique/lampe_defectueuse ; pièce principale fusible ; site le plus touché DAK-SIM. Incidents : INC-0015, INC-0019, INC-0034, INC-0038, INC-0043, INC-0051, INC-0067, INC-0070, INC-0092, INC-0093, INC-0098, INC-0122, INC-0131, INC-0133, INC-0136, INC-0161, INC-0174, INC-0178.
+
+2026-01 : 17 incidents dont 15 pannes hors contrôles ; 93.9 h ; cause principale cause_indeterminee ; pièce principale lampe ; site le plus touché DAK-SIM. Incidents : INC-0001, INC-0022, INC-0028, INC-0047, INC-0049, INC-0050, INC-0053, INC-0061, INC-0072, INC-0080, INC-0103, INC-0135, INC-0146, INC-0147, INC-0156, INC-0171, INC-0179.
+
+2026-02 : 14 incidents dont 8 pannes hors contrôles ; 141.0 h ; cause principale alimentation/connectique ; pièce principale lampe ; site le plus touché DAK-SIM. Incidents : INC-0006, INC-0009, INC-0012, INC-0023, INC-0025, INC-0032, INC-0037, INC-0057, INC-0066, INC-0068, INC-0075, INC-0094, INC-0114, INC-0177.
+
+2026-03 : 4 incidents dont 4 pannes hors contrôles ; 31.4 h ; cause principale humidite ; pièce principale module ; site le plus touché NIM-SIM. Incidents : INC-0014, INC-0045, INC-0055, INC-0064.
+
+2026-04 : 11 incidents dont 10 pannes hors contrôles ; 76.5 h ; cause principale alimentation ; pièce principale connecteur ; site le plus touché NIM-SIM. Incidents : INC-0011, INC-0018, INC-0021, INC-0026, INC-0030, INC-0054, INC-0125, INC-0137, INC-0152, INC-0162, INC-0169.
+
+2026-05 : 7 incidents dont 6 pannes hors contrôles ; 34.1 h ; cause principale cause_indeterminee/usure ; pièce principale module ; site le plus touché NIM-SIM. Incidents : INC-0016, INC-0044, INC-0086, INC-0089, INC-0108, INC-0112, INC-0126.
+
+2026-06 : 3 incidents dont 2 pannes hors contrôles ; 23.5 h ; cause principale cause_indeterminee ; pièce principale lampe ; site le plus touché DAK-SIM. Incidents : INC-0059, INC-0106, INC-0175.
+
+Tendances : mois le plus chargé 2025-12 (18 incidents, 192,3 h) ; deuxième pic 2026-01 (17 incidents) ; plus faible activité 2026-06 (3 incidents, 23,5 h, données jusqu'au 12/06/2026 seulement).
+
+13. Pièces remplacées par famille d'équipements
+Famille : aucune / connecteur / fusible / lampe / module
+
+FEUX_APPROCHE : aucune 5 ; connecteur 7 ; fusible 8 ; lampe 10 ; module 5
+
+FEUX_BORD_PISTE : aucune 8 ; connecteur 5 ; fusible 7 ; lampe 8 ; module 6
+
+FEUX_SEUIL : aucune 12 ; connecteur 3 ; fusible 5 ; lampe 8 ; module 8
+
+PAPI : aucune 10 ; connecteur 6 ; fusible 6 ; lampe 5 ; module 5
+
+REGULATEUR_CCR : aucune 8 ; connecteur 7 ; fusible 14 ; lampe 3 ; module 11
+
+Note : « aucune » signifie qu'aucune pièce n'a été remplacée (43 interventions) ; ce n'est pas une pièce. La pièce réellement la plus remplacée est le fusible (40).
+
+14. Limites des données
+Données fictives générées pour le challenge. Période du 06/01/2025 au 12/06/2026 (juin 2026 incomplet). Délai d'intervention constant (3 h) : il ne permet pas d'analyser la réactivité. Aucun coût ni stock de pièces dans les données : l'assistant ne peut pas répondre aux questions de coût.
