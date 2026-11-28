@@ -14,20 +14,29 @@ générés en JavaScript vanilla.
 - Recommandations : Base BaliseIA (section 11), avec circuit de validation
   humaine conservé dans le localStorage du navigateur.
 
-Chat : Bot Framework Web Chat relié à Copilot Studio via TOKEN_ENDPOINT
-(chargé à la demande) ; repli sur l'iframe COPILOT_URL si le token endpoint
-est vide ou si la connexion échoue.
+Chat : Bot Framework Web Chat relié à Copilot Studio par un secret Direct Line
+(DIRECTLINE_SECRET, lu dans directline_secret.txt – fichier ignoré par git) ;
+domaine par défaut puis domaine Europe ; repli sur l'iframe COPILOT_URL si le
+secret est absent ou si la connexion échoue.
 
-Usage : python build_dashboard.py   (après python prepare_data.py)
+Usage : python build_dashboard.py            -> BaliseIA_dashboard_G4.html (avec le secret, usage local)
+        python build_dashboard.py --partage  -> BaliseIA_dashboard_G4_partage.html (SANS secret, à partager)
+(après python prepare_data.py)
 """
 import base64
 import json
+import sys
 from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
 DATA = ICI / "data.json"
 SORTIE = ICI / "BaliseIA_dashboard_G4.html"
-LOGO = ICI / "assets" / "logo_asecna.png"   # intégré en base64 : la page reste un fichier unique
+SORTIE_PARTAGE = ICI / "BaliseIA_dashboard_G4_partage.html"   # version sans secret, à diffuser
+LOGO = ICI / "assets" / "logo_asecna.png"
+# Secret Direct Line : jamais écrit dans ce script versionné. Il est lu dans directline_secret.txt
+# (fichier ignoré par git) s'il existe ; sinon la page contient le texte à remplacer.
+SECRET = ICI / "directline_secret.txt"
+SECRET_A_COLLER = "<COLLER ICI LE SECRET 1>"
 
 GABARIT = r"""<!DOCTYPE html>
 <html lang="fr">
@@ -40,7 +49,8 @@ GABARIT = r"""<!DOCTYPE html>
  --marine:#0d2f55;--bleu:#0b4f8a;--bleu-fonce:#0d2f55;--bleu-pale:#e6eef7;
  --attention:#e07b2a;--attention-pale:#fdf1e6;--critique:#c0392b;--critique-pale:#fbeceb;
  --valide:#2e8b57;--valide-pale:#e8f4ed;--gris:#6b7785;--gris-clair:#9aa5b1;--gris-pale:#eef1f4;
- --fond:#f2f5f8;--carte:#fff;--texte:#1c2733;--trait:#dfe5eb;--menu:220px;
+ --fond:#f2f5f8;--carte:#fff;--texte:#1c2733;--trait:#dfe5eb;--menu:220px;--hb:68px;
+ --copilot-header:48px;   /* hauteur du bandeau interne de l'iframe Copilot Studio (mesurée : 48 px) */
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;color:var(--texte);font-size:14px;line-height:1.45;
@@ -163,7 +173,11 @@ table.dt tr.sel td{background:var(--bleu-pale)}
 .rec dd{margin:0}
 .rec .trace{font-size:12.5px;color:var(--gris);background:var(--gris-pale);border-radius:6px;padding:6px 10px}
 .rec .trace.valide{background:var(--valide-pale);color:#23704a}
-.rec form{display:grid;grid-template-columns:1fr .7fr 1.4fr;gap:8px 12px;border-top:1px solid var(--gris-pale);padding-top:10px}
+.rec form{display:none;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 12px;border-top:1px solid var(--gris-pale);padding-top:10px}
+.rec.form-ouvert form{display:grid}
+.rec.form-ouvert .actions-carte [data-action=decider]{display:none}
+.rec form input,.rec form textarea{width:100%;box-sizing:border-box}
+.rec .actions-carte{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .rec label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--gris);font-weight:600}
 .rec input,.rec textarea{font:inherit;font-size:13px;border:1px solid var(--trait);border-radius:6px;padding:6px 8px;color:var(--texte);resize:vertical}
 .rec input.erreur{border-color:var(--critique);box-shadow:0 0 0 2px var(--critique-pale)}
@@ -205,10 +219,17 @@ footer{text-align:center;font-style:italic;color:var(--gris);font-size:12.5px;pa
 .chat{position:fixed;z-index:50;background:#fff;display:flex;flex-direction:column;overflow:hidden;box-shadow:-8px 0 30px rgba(13,47,85,.18)}
 .chat.tiroir{top:0;right:0;bottom:0;width:min(520px,100vw);transform:translateX(105%);transition:transform .25s ease}
 .chat.tiroir.ouvert{transform:none}
-.chat.pleine{top:92px;left:calc(var(--menu) + 24px);right:24px;bottom:48px;border-radius:12px;box-shadow:0 1px 2px rgba(13,47,85,.06),0 0 0 1px rgba(13,47,85,.06)}
+/* Page Assistant : panneau centré dans la zone de contenu, 920 px max, sous le bandeau, au-dessus du pied de page */
+.chat.pleine{top:calc(var(--hb) + 16px);left:calc(var(--menu) + 24px);right:24px;bottom:auto;margin:0 auto;width:min(920px,calc(100vw - var(--menu) - 48px));
+ height:min(calc(100vh - 160px),calc(100vh - var(--hb) - 72px));border-radius:12px;box-shadow:0 1px 2px rgba(13,47,85,.06),0 0 0 1px rgba(13,47,85,.06)}
 .chat-tete{background:var(--marine);color:#fff;padding:10px 12px 10px 16px;display:flex;align-items:center;gap:8px;flex:none}
 .chat-tete b{flex:1;font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:8px}
-.chat-tete b::before{content:"";width:8px;height:8px;border-radius:50%;background:#4cc38a;box-shadow:0 0 0 3px rgba(76,195,138,.25)}
+.chat-tete b::before{content:"";width:8px;height:8px;border-radius:50%;background:#9aa5b1;box-shadow:0 0 0 3px rgba(154,165,177,.25)}
+/* Indicateur de connexion : vert = Web Chat connecté, orange = repli iframe, gris = connexion en cours */
+.chat-tete b.etat-en-ligne::before{background:#4cc38a;box-shadow:0 0 0 3px rgba(76,195,138,.25)}
+.chat-tete b.etat-iframe::before{background:var(--attention);box-shadow:0 0 0 3px rgba(224,123,42,.3)}
+.chat-tete b.etat-connexion::before{background:#9aa5b1;animation:pulse 1.2s infinite ease-in-out}
+@keyframes pulse{50%{opacity:.35}}
 .chat-tete button{border:0;border-radius:6px;padding:6px 8px;cursor:pointer;background:rgba(255,255,255,.12);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:12.5px}
 .chat-tete button:hover{background:rgba(255,255,255,.2)}
 .chat-tete .ic{width:16px;height:16px}
@@ -221,9 +242,12 @@ footer{text-align:center;font-style:italic;color:var(--gris);font-size:12.5px;pa
 .config input,.config textarea{width:100%;font:12px Consolas,monospace;border:1px solid var(--trait);border-radius:6px;padding:6px;margin-top:3px}
 .config textarea{height:56px;resize:vertical}
 .config .actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-#webchat{flex:1;min-height:0;position:relative;background:#f7f9fb}
+#webchat{flex:1;min-height:0;position:relative;background:#fff;display:flex;flex-direction:column}
 #webchat>div{height:100%}
-#webchat iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+/* Mode iframe : le bandeau interne de Copilot Studio (« BaliseIA v2 ») est masqué en décalant l'iframe
+   vers le haut dans un conteneur qui rogne ; seul notre en-tête « BaliseIA – En ligne » reste visible */
+.chat-frame{position:relative;overflow:hidden;flex:1;min-height:0}
+.chat-frame iframe{position:absolute;top:calc(-1 * var(--copilot-header));left:0;width:100%;height:calc(100% + var(--copilot-header));border:0}
 .attente{flex:none;display:none;align-items:center;gap:8px;padding:7px 16px;font-size:12.5px;color:var(--bleu);background:var(--bleu-pale);border-top:1px solid #cddcec}
 .attente.visible{display:flex}
 .attente.lent{color:#8a4410;background:var(--attention-pale)}
@@ -252,25 +276,41 @@ footer{text-align:center;font-style:italic;color:var(--gris);font-size:12.5px;pa
 .fab::after{content:attr(aria-label);position:absolute;right:66px;top:50%;transform:translateY(-50%) translateX(6px);background:var(--marine);color:#fff;font-size:13px;font-weight:600;padding:6px 12px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s}
 .fab:hover::after,.fab:focus-visible::after{opacity:1;transform:translateY(-50%)}
 .fab[hidden]{display:none}
-.place-assistant{height:calc(100vh - 210px);min-height:420px}
+.place-assistant{height:calc(100vh - 200px)}
+.titre-masque{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 body.sur-assistant footer{position:fixed;left:var(--menu);right:0;bottom:0;padding:14px 24px}
-/* Markdown de l'agent (Web Chat) */
-/* Bulles élargies : les réponses du bot occupent toute la largeur utile (tableaux lisibles),
-   les questions de l'utilisateur restent compactes, alignées à droite */
-#webchat .webchat__basic-transcript__activity{padding-left:10px !important;padding-right:10px !important}
-#webchat .webchat__stacked-layout__content{max-width:min(98%,1100px) !important}
+/* Web Chat – mise en page « ChatGPT » : colonne centrée de 860 px max, marges de 24 px,
+   réponses de l'agent sans bulle sur toute la largeur, questions en bulle claire à droite, Segoe UI 15 px */
+#webchat .webchat__basic-transcript__transcript{width:100%;max-width:860px;margin:0 auto !important;padding:16px 24px !important;box-sizing:border-box}
+#webchat .webchat__basic-transcript__activity{padding-left:0 !important;padding-right:0 !important}
+#webchat .webchat__stacked-layout{margin-left:0 !important;margin-right:0 !important}
+#webchat .webchat__bubble__nub-pad{display:none !important}
+#webchat .webchat__stacked-layout:not(.webchat__stacked-layout--from-user) .webchat__text-content{padding:0 !important}
+#webchat .webchat__stacked-layout__status,#webchat .webchat__stacked-layout__alignment-pad{margin-left:0 !important}
+/* L'indicateur de Web Chat est remplacé par « BaliseIA analyse les données… » */
+#webchat [class*="typing-indicator"]{display:none !important}
+#webchat .webchat__stacked-layout__avatar-gutter,#webchat .webchat__stacked-layout__nub-pad{display:none !important}
+#webchat .webchat__bubble__content{font-size:15px;line-height:1.6}
 #webchat .webchat__stacked-layout:not(.webchat__stacked-layout--from-user) .webchat__stacked-layout__content{flex:1 1 auto;max-width:100% !important}
 #webchat .webchat__stacked-layout:not(.webchat__stacked-layout--from-user) .webchat__bubble{width:100%;max-width:none}
-#webchat .webchat__stacked-layout__avatar-gutter,#webchat .webchat__stacked-layout__nub-pad{width:0 !important;min-width:0 !important}
-#webchat .webchat__render-markdown{overflow-x:auto;line-height:1.5}
-#webchat .webchat__render-markdown p{margin:6px 0}
-#webchat .webchat__render-markdown h1,#webchat .webchat__render-markdown h2,#webchat .webchat__render-markdown h3,#webchat .webchat__render-markdown h4{margin:12px 0 6px;font-size:14px;color:var(--marine)}
-#webchat .webchat__render-markdown ul,#webchat .webchat__render-markdown ol{margin:6px 0 8px;padding-left:20px}
-#webchat .webchat__render-markdown li{margin:3px 0}
-#webchat table{border-collapse:collapse;width:100%;font-size:12.5px;display:block;overflow-x:auto;margin:8px 0}
-#webchat th,#webchat td{border:1px solid #e1e8f0;padding:4px 8px;text-align:left;white-space:nowrap;vertical-align:top}
+#webchat .webchat__stacked-layout:not(.webchat__stacked-layout--from-user) .webchat__bubble__content{background:transparent !important;border:0 !important;padding:2px 0 !important}
+#webchat .webchat__stacked-layout--from-user .webchat__stacked-layout__content{max-width:80% !important}
+#webchat .webchat__stacked-layout--from-user .webchat__bubble__content{padding:8px 14px !important}
+/* Zone de saisie arrondie, centrée en bas */
+#webchat .webchat__send-box{max-width:812px;width:calc(100% - 48px);margin:0 auto 14px !important;background:transparent !important}
+#webchat .webchat__send-box__main{border:1px solid #d5dde6 !important;border-radius:24px;background:#fff;padding:2px 6px 2px 16px;box-shadow:0 1px 6px rgba(13,47,85,.08)}
+#webchat .webchat__send-box-text-box__input,#webchat .webchat__send-box-text-box__text-area{font-size:15px}
+#webchat .webchat__upload-button{display:none !important}
+/* Markdown de l'agent : titres, listes, tableaux lisibles */
+#webchat .webchat__render-markdown{overflow-x:auto;line-height:1.6}
+#webchat .webchat__render-markdown p{margin:6px 0 8px}
+#webchat .webchat__render-markdown h1,#webchat .webchat__render-markdown h2,#webchat .webchat__render-markdown h3,#webchat .webchat__render-markdown h4{margin:16px 0 6px;font-size:16px;color:var(--marine)}
+#webchat .webchat__render-markdown ul,#webchat .webchat__render-markdown ol{margin:6px 0 10px;padding-left:22px}
+#webchat .webchat__render-markdown li{margin:4px 0}
+#webchat table{border-collapse:collapse;font-size:13.5px;display:block;overflow-x:auto;max-width:100%;margin:10px 0}
+#webchat th,#webchat td{border:1px solid #e1e8f0;padding:6px 10px;text-align:left;white-space:nowrap;vertical-align:top}
 #webchat th{background:#eaf2fb;color:var(--marine);font-weight:600}
-#webchat .id-nowrap{white-space:nowrap}
+#webchat tr:nth-child(even) td{background:#f9fbfc}#webchat .id-nowrap{white-space:nowrap}
 /* ---------- Rapports ---------- */
 .parametres{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
 .parametres label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--gris)}
@@ -311,6 +351,13 @@ table.rt .nowrap{white-space:nowrap}
 .rec-r .st.attention{color:#a5520f}.rec-r .st.valide{color:var(--valide)}.rec-r .st.rejete{color:var(--gris)}
 .rec-r p{font-size:9.5pt;margin:0 0 1mm}
 .methode li{margin-bottom:1.5mm}
+.sect+.sect{margin-top:8mm}
+.barre-cel{display:inline-block;width:20mm;height:2.8mm;background:#e7ecf1;border-radius:1px;vertical-align:middle;margin-right:2mm;overflow:hidden}
+.barre-cel i{display:block;height:100%}
+.liste-ids{font-family:Consolas,monospace;font-size:8.5pt;line-height:1.5}
+.deux .graphe svg.graph{max-height:42mm}
+.note-impr{flex-basis:100%;font-size:12px;color:var(--gris);display:flex;align-items:center;gap:6px}
+.note-impr .ic{width:15px;height:15px;color:var(--bleu)}
 @media print{
  body[data-vue="rapports"]{background:#fff !important}
  body[data-vue="rapports"] .menu,body[data-vue="rapports"] .bandeau,body[data-vue="rapports"] .chat,body[data-vue="rapports"] .fab,
@@ -327,7 +374,26 @@ table.rt .nowrap{white-space:nowrap}
  body[data-vue="rapports"] table.rt thead{display:table-header-group}
  body[data-vue="rapports"] table.rt tr{break-inside:avoid}
  body[data-vue="rapports"] .feuille h2,body[data-vue="rapports"] .feuille h3{break-after:avoid}
- body[data-vue="rapports"] svg.graph{max-height:70mm}
+ body[data-vue="rapports"] .rec-r,body[data-vue="rapports"] table.rt.court,body[data-vue="rapports"] .graphe,
+ body[data-vue="rapports"] .deux,body[data-vue="rapports"] .constats{break-inside:avoid}
+ body[data-vue="rapports"] .feuille{font-size:10pt}
+ body[data-vue="rapports"] .sect+.sect{margin-top:4mm}
+ body[data-vue="rapports"] svg.graph{max-height:40mm}
+ body[data-vue="rapports"] .deux .graphe svg.graph{max-height:30mm}
+ body[data-vue="rapports"] .feuille h2{font-size:13pt;margin-bottom:2.5mm;padding-bottom:1.2mm}
+ body[data-vue="rapports"] .feuille h3{margin:3mm 0 1.5mm;font-size:10.5pt}
+ body[data-vue="rapports"] .constats{font-size:9.5pt;gap:1.2mm;line-height:1.35}
+ body[data-vue="rapports"] table.rt{font-size:9pt;margin:1mm 0 2mm}
+ body[data-vue="rapports"] table.rt td,body[data-vue="rapports"] table.rt th{padding:.8mm 2.2mm;line-height:1.3}
+ body[data-vue="rapports"] .src-r{margin-top:1.5mm;font-size:8pt}
+ body[data-vue="rapports"] #r-anomalies table.rt{font-size:8.5pt}
+ body[data-vue="rapports"] #r-anomalies table.rt td,body[data-vue="rapports"] #r-anomalies table.rt th{padding:1.1mm 1.8mm;line-height:1.3}
+ body[data-vue="rapports"] .liste-ids{font-family:inherit;font-size:8.5pt;line-height:1.35}
+ body[data-vue="rapports"] .rec-r{padding:1.8mm 3mm;margin-bottom:2mm}
+ body[data-vue="rapports"] .rec-r p{font-size:8.6pt;line-height:1.33;margin:0 0 .6mm}
+ body[data-vue="rapports"] .rec-r .ref{font-size:8pt;padding:0 2px}
+ body[data-vue="rapports"] .methode li{font-size:9pt;margin-bottom:1mm}
+ body[data-vue="rapports"] .deux.methode-bloc{break-inside:auto}
  body[data-vue="rapports"] *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 @media (max-width:1300px){
@@ -339,7 +405,7 @@ table.rt .nowrap{white-space:nowrap}
  .menu{position:static;width:auto;height:auto}
  .page{margin-left:0}
  main{padding:14px 12px 90px}
- .chat.pleine{left:8px;right:8px;top:8px}
+ .chat.pleine{left:8px;right:8px;top:8px;width:auto;height:calc(100vh - 60px)}
  body.sur-assistant footer{left:0}
  .rec form{grid-template-columns:1fr}
  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -431,6 +497,7 @@ table.rt .nowrap{white-space:nowrap}
      <button type="button" class="btn" id="btnImprimer" disabled><i data-ic="imprimer"></i>Imprimer / Enregistrer en PDF</button>
      <button type="button" class="btn" id="btnCommenter"><i data-ic="message"></i>Demander à BaliseIA de commenter ce rapport</button>
     </span>
+    <div class="note-impr"><i data-ic="info"></i>Dans la fenêtre d'impression, décochez « En-têtes et pieds de page » : le rapport a déjà son propre pied de page numéroté.</div>
    </div>
    <div class="rapport-zone"><div class="rapport" id="rapport"><div class="carte vide" style="width:100%">Choisissez une période et un site, puis cliquez sur « Générer le rapport ».</div></div></div>
   </section>
@@ -465,13 +532,13 @@ table.rt .nowrap{white-space:nowrap}
     <div class="tab" style="max-height:620px"><table class="dt"><thead><tr><th>Incident</th><th>Équipement</th><th>Site</th><th>Type</th><th>Détail</th><th>Traitement appliqué</th></tr></thead><tbody id="tQualite"></tbody></table></div>
    </div>
    <div class="carte" id="carteEcarts">
-    <div class="titre-carte">Écarts d'arrondi entre la Base et le recalcul<span class="droite"><span data-src="3,11" data-plus="Les valeurs affichées sont toujours celles de la section 3."></span></span></div>
-    <div class="tab"><table class="dt"><thead><tr><th>Équipement</th><th>Valeur</th><th class="num">Base, section 3</th><th class="num">Autre valeur</th></tr></thead><tbody id="tEcarts"></tbody></table></div>
+    <div class="titre-carte">Écarts et corrections de la Base<span class="droite"><span data-src="3,11" data-plus="L'outil utilise partout la Base corrigée : une seule valeur de score et de cause principale par équipement."></span></span></div>
+    <div class="tab"><table class="dt"><thead><tr><th>Élément</th><th>Valeur</th><th>Base d'origine</th><th>Autre valeur</th><th>Traitement</th></tr></thead><tbody id="tEcarts"></tbody></table></div>
    </div>
   </section>
 
   <!-- ===================== Assistant ===================== -->
-  <section class="vue" id="v-assistant"><header><h1>Assistant BaliseIA</h1></header><div class="place-assistant"></div></section>
+  <section class="vue" id="v-assistant"><h1 class="titre-masque">Assistant BaliseIA</h1><div class="place-assistant"></div></section>
  </main>
  <footer>Données fictives – ne pas utiliser pour la maintenance réelle. Toute recommandation doit être validée par un expert métier.</footer>
 </div>
@@ -483,12 +550,12 @@ table.rt .nowrap{white-space:nowrap}
 <!-- Chat BaliseIA : instance unique, en tiroir ou en pleine page -->
 <button type="button" class="fab" id="fab" aria-label="Demander à BaliseIA"><i data-ic="message"></i></button>
 <aside class="chat tiroir" id="chat" aria-label="BaliseIA">
- <div class="chat-tete"><b>BaliseIA – En ligne</b>
+ <div class="chat-tete"><b id="etatChat" class="etat-connexion">BaliseIA – Connexion…</b>
   <button type="button" id="btnConfig" title="Changer l'agent"><i data-ic="reglages"></i>Changer l'agent</button>
   <button type="button" id="btnFermer" title="Fermer" aria-label="Fermer"><i data-ic="fermer"></i></button></div>
  <div class="config" id="config">
-  <label>Token endpoint Copilot Studio (chat personnalisé)
-   <input id="champToken" placeholder="https://…/powervirtualagents/botsbyschema/…/directline/token?api-version=2022-03-01-preview"></label>
+  <label>Secret Direct Line (chat personnalisé) – conservé dans ce navigateur uniquement
+   <input id="champSecret" type="password" autocomplete="off" placeholder="Secret 1 du canal Direct Line de l'agent"></label>
   <label>URL ou code &lt;iframe&gt; (mode de repli)
    <textarea id="champIframe"></textarea></label>
   <div class="actions">
@@ -504,7 +571,7 @@ table.rt .nowrap{white-space:nowrap}
    <button type="button" class="icone-btn" id="btnFermerColler" aria-label="Fermer"><i data-ic="fermer"></i></button></div>
   <div class="a-coller-texte" id="aCollerTexte"></div>
   <div class="a-coller-pied"><button type="button" class="btn petit" id="btnRecopier">Copier à nouveau</button>
-   <span>Le mode iframe ne permet pas l'envoi automatique : renseignez le token endpoint (bouton « Changer l'agent ») pour envoyer directement.</span></div>
+   <span>Le mode iframe ne permet pas l'envoi automatique : renseignez le secret Direct Line (bouton « Changer l'agent ») pour envoyer directement.</span></div>
  </div>
  <div id="webchat"></div>
  <div class="attente" id="attente"><span class="points"><i></i><i></i><i></i></span><span id="attenteTxt">BaliseIA analyse les données…</span></div>
@@ -517,12 +584,15 @@ table.rt .nowrap{white-space:nowrap}
 
 <script>
 /* ====================== Configuration de l'agent ====================== */
-const TOKEN_ENDPOINT = "COLLEZ_ICI_LE_TOKEN_ENDPOINT";   // vide ou non remplacé -> repli iframe (COPILOT_URL)
-const COPILOT_URL = "https://copilotstudio.microsoft.com/environments/28ed4c89-5dbb-e819-bfa5-dfb4f8150e0f/bots/cr8ee_baliseia_3OnqRj/webchat?__version__=2&enableFileAttachment=false&cliAgent=true";
+// Secret de démonstration – ne pas publier ce fichier ni le versionner ; régénérer le secret après l'événement.
+const DIRECTLINE_SECRET = "__DIRECTLINE_SECRET__";
+const COPILOT_URL = "https://copilotstudio.microsoft.com/environments/28ed4c89-5dbb-e819-bfa5-dfb4f8150e0f/bots/cr8ee_baliseiav2_RgZI7Z/webchat?__version__=2&enableFileAttachment=false&cliAgent=true";
 const WEBCHAT_JS = "https://cdn.botframework.com/botframework-webchat/latest/webchat.js";
-const API_VERSION_DEFAUT = "2022-03-01-preview";
+/* Domaines Direct Line essayés dans l'ordre : domaine par défaut (directline.botframework.com), puis Europe */
+const DOMAINES_DIRECTLINE = [null, "https://europe.directline.botframework.com/v3/directline"];
+const DELAI_CONNEXION_MS = 20000;
 const DELAI_MAX_REPONSE_MS = 90000;
-const CLE_TOKEN = "baliseia_token_endpoint", CLE_AGENT = "baliseia_agent_url";
+const CLE_SECRET = "baliseia_directline_secret", CLE_AGENT = "baliseia_agent_url";
 const CLE_VALID = "baliseia_validations_v1", CLE_VALIDATEUR = "baliseia_dernier_validateur";
 const DATA = __DATA__;
 
@@ -602,7 +672,11 @@ const JETONS = [[/\bEN_COURS\b/g,"en cours"],[/\bA_VALIDER\b/g,"à valider"],[/�
   [/\bSECTEUR-(\d)/g,"secteur $1"],[/(\d)\.(\d)/g,"$1,$2"],[/incident\(s\)/g,"incidents"],[/ \/100/g,"/100"]];
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const refs = s => s.replace(/\b((?:EQ|INC|REC)-[A-Z0-9-]*[0-9A-Z])\b/g,'<span class="ref">$1</span>');
-const texteBase = s => refs(esc(JETONS.reduce((t,[r,v])=>t.replace(r,v),s)));
+/* Accords : 0 -> « aucun incident » / « aucune panne », 1 -> singulier */
+const accords = s => s.replace(/\b0 incidents\b/g,"aucun incident").replace(/\b1 incidents\b/g,"1 incident")
+  .replace(/\b0 pannes\b/g,"aucune panne").replace(/\b1 pannes\b/g,"1 panne");
+const nIncidents = n => n===0 ? "aucun incident" : n===1 ? "1 incident" : `${ni(n)} incidents`;
+const texteBase = s => refs(esc(accords(JETONS.reduce((t,[r,v])=>t.replace(r,v),s))));
 
 /* ====================== Règles métier (identiques à prepare_data.py) ====================== */
 const SITES = ["DAK-SIM","NIM-SIM","ABJ-SIM"];
@@ -671,7 +745,10 @@ function statutRec(id){
   if(!d) return {code:"a_valider",lib:"À valider",ton:"attention",d:null};
   return d.code==="validee" ? {code:"validee",lib:"Validée",ton:"valide",d} : {code:"rejetee",lib:"Rejetée",ton:"rejete",d};
 }
-const pastilleRec = id => { const s=statutRec(id); return `<span class="statut ${s.ton}">${s.code==="validee"?ic("coche"):""}${s.lib}</span>`; };
+const pastilleRec = id => { const s=statutRec(id); return `<span class="statut ${s.ton}">${s.code==="validee"?ic("coche"):""}${s.lib}${s.d&&s.d.ot?` · ${esc(s.d.ot)}`:""}</span>`; };
+/* Ordres de travail : compteur OT-2026-001, 002… conservé dans ce navigateur */
+const CLE_OT = "baliseia_compteur_ot";
+const OUVERTES = new Set();   // cartes dont le formulaire de décision est déplié
 const quandFR = iso => { const d=new Date(iso); return `${d.toLocaleDateString("fr-FR")} à ${d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`; };
 
 /* ====================== Graphiques SVG ====================== */
@@ -768,7 +845,8 @@ function phrasesARetenir(inc,pannes){
   /* 3. Incidents encore ouverts malgré une intervention */
   const ouverts=inc.filter(i=>i.statut==="EN_COURS"), delais=[...new Set(ouverts.map(i=>i.delai_intervention_h).filter(v=>v!=null))];
   out.push(!ouverts.length ? "Aucun incident ouvert : tous les incidents de la période sont clôturés."
-    : delais.length===1 ? `${ouverts.length} incidents sont encore ouverts alors qu'une intervention a eu lieu ${nf(delais[0],0)} h après chacun.`
+    : delais.length===1 ? (ouverts.length===1 ? `1 incident est encore ouvert alors qu'une intervention a eu lieu ${nf(delais[0],0)} h après son début.`
+        : `${ouverts.length} incidents sont encore ouverts alors qu'une intervention a eu lieu ${nf(delais[0],0)} h après chacun.`)
     : `${ouverts.length} incidents sont encore ouverts alors qu'une intervention a eu lieu en moyenne ${nf(moyenne(ouverts.map(i=>i.delai_intervention_h)))} h après leur début.`);
   return out;
 }
@@ -804,23 +882,30 @@ function rendreResume(inc,pannes,valides,enCours){
 
 /* ====================== Recommandations ====================== */
 function carteRec(r){
-  const s=statutRec(r.id), e=r.equipement_id?EQ_DE[r.equipement_id]:null;
+  const s=statutRec(r.id), e=r.equipement_id?EQ_DE[r.equipement_id]:null, ouvert=OUVERTES.has(r.id);
   const ident = e ? `<b>${r.equipement_id}</b><small>${lib(r.famille)} · ${lib(r.site)}, ${secteur(r.localisation)} · rang ${e.b.rang}/30</small>`
                   : `<b>${esc(r.titre)}</b><small>Recommandation transverse</small>`;
-  const trace = s.d ? `<div class="trace ${s.code==="validee"?"valide":""}">${s.lib} le ${quandFR(s.d.quand)} par <b>${esc(s.d.par)}</b>${s.d.ot?` · OT n° ${esc(s.d.ot)}`:""}${s.d.commentaire?` – « ${esc(s.d.commentaire)} »`:""}</div>` : "";
-  return `<article class="carte rec s-${s.ton}" id="rec-${r.id}" data-rec="${r.id}">
+  const trace = s.d ? `<div class="trace ${s.code==="validee"?"valide":""}">${s.lib} le ${quandFR(s.d.quand)} par <b>${esc(s.d.par)}</b>${s.d.commentaire?` – « ${esc(s.d.commentaire)} »`:""}${s.d.ot?` · ordre de travail <b>${esc(s.d.ot)}</b> généré le ${quandFR(s.d.otQuand)}`:""}</div>` : "";
+  /* Boutons de la carte : Décider / Demander plus d'infos ; après validation : ordre de travail */
+  let boutons = `<button type="button" class="btn ${s.code==="a_valider"?"prim":""}" data-action="decider">${ic("valider")}${s.code==="a_valider"?"Décider":"Modifier la décision"}</button>`;
+  if(s.code==="validee") boutons = (s.d.ot
+      ? `<button type="button" class="btn ok" data-action="ot">${ic("rapport")}Ouvrir l'ordre de travail</button>
+         <a class="btn" href="${mailtoOT(r)}" data-mailto="${r.id}">${ic("envoyer")}Envoyer au chef d'équipe</a>`
+      : `<button type="button" class="btn ok" data-action="ot">${ic("rapport")}Générer l'ordre de travail</button>`) + boutons;
+  return `<article class="carte rec s-${s.ton}${ouvert?" form-ouvert":""}" id="rec-${r.id}" data-rec="${r.id}">
    <header><div class="ident"><span class="rec-id">${r.id}</span> ${ident}</div>${pastilleRec(r.id)}</header>
    <dl><dt>Constat</dt><dd>${texteBase(maj1(r.constat))}</dd><dt>Recommandation</dt><dd>${texteBase(maj1(r.recommandation))}</dd>
      <dt>Statut</dt><dd>${s.code==="a_valider"?"À valider par l'expert métier":s.lib+" par l'expert métier"}</dd></dl>
    ${trace}
+   <div class="actions-carte">${boutons}
+    <button type="button" class="btn" data-action="infos">${ic("question")}Demander plus d'infos</button></div>
    <form novalidate>
     <label><span>Nom du validateur <span class="req" aria-hidden="true">*</span></span><input name="nom" required autocomplete="name" value="${esc(lire(CLE_VALIDATEUR))}"></label>
-    <label>N° d'OT (facultatif)<input name="ot" autocomplete="off" placeholder="ex. OT-2026-0142"></label>
     <label>Commentaire<textarea name="commentaire" rows="1"></textarea></label>
     <div class="actions">
      <button type="button" class="btn ok" data-action="valider">${ic("coche")}Valider</button>
      <button type="button" class="btn" data-action="rejeter">${ic("rejeter")}Rejeter</button>
-     <button type="button" class="btn" data-action="infos">${ic("question")}Demander plus d'infos</button>
+     <button type="button" class="btn" data-action="annuler">Annuler</button>
      <span class="msg" role="alert"></span>
     </div>
    </form></article>`;
@@ -836,18 +921,91 @@ function rendreJournal(){
   document.getElementById("nbJournal").textContent=`(${VALID.journal.length})`;
   document.getElementById("tJournal").innerHTML = VALID.journal.length ? VALID.journal.map(j=>`<tr>
     <td class="nowrap">${quandFR(j.quand)}</td><td>${esc(j.par)}</td><td class="nowrap"><span class="rec-id">${j.rec}</span> ${j.equipement?esc(j.equipement):""}</td>
-    <td><span class="statut ${j.decision==="Validée"?"valide":"rejete"}">${j.decision}</span></td><td class="nowrap">${esc(j.ot||"")}</td><td>${esc(j.commentaire||"")}</td></tr>`).join("")
+    <td><span class="statut ${j.decision==="Validée"?"valide":j.decision==="OT généré"?"info":"rejete"}">${j.decision}</span></td><td class="nowrap">${esc(j.ot||"")}</td><td>${esc(j.commentaire||"")}</td></tr>`).join("")
     : '<tr><td colspan="6" class="vide">Aucune décision enregistrée.</td></tr>';
 }
 function decider(id,action,form){
   const nom=form.nom.value.trim(), msg=form.querySelector(".msg");
   if(!nom){ form.nom.classList.add("erreur"); form.nom.focus(); msg.textContent="Le nom du validateur est obligatoire."; return; }
-  const D=DECISIONS[action], quand=new Date().toISOString(), commentaire=form.commentaire.value.trim(), ot=form.ot.value.trim(), r=REC_DE[id];
-  VALID.decisions[id]={code:D.code,par:nom,quand,commentaire,ot};
-  VALID.journal.unshift({quand,par:nom,rec:id,equipement:r.equipement_id||r.titre,decision:D.lib,commentaire,ot});
-  sauverValid(); ecrire(CLE_VALIDATEUR,nom);
+  const D=DECISIONS[action], quand=new Date().toISOString(), commentaire=form.commentaire.value.trim(), r=REC_DE[id];
+  const prec=VALID.decisions[id], garderOT = prec && prec.ot && D.code==="validee";   // une revalidation conserve l'OT déjà émis
+  VALID.decisions[id]={code:D.code,par:nom,quand,commentaire,ot:garderOT?prec.ot:"",otQuand:garderOT?prec.otQuand:""};
+  VALID.journal.unshift({quand,par:nom,rec:id,equipement:r.equipement_id||r.titre,decision:D.lib,commentaire,ot:garderOT?prec.ot:""});
+  sauverValid(); ecrire(CLE_VALIDATEUR,nom); OUVERTES.delete(id);
   const carte=document.getElementById("rec-"+id); carte.outerHTML=carteRec(r);
   rendreJournal(); rendre(false);
+}
+/* ---- Ordres de travail ---- */
+const texteBrut = s => accords(JETONS.reduce((t,[r,v])=>t.replace(r,v),s));
+function piecesAPreparer(eqId){
+  const c=compter(DATA.incidents.filter(i=>i.equipement_id===eqId && i.piece_remplacee && i.piece_remplacee.toLowerCase()!=="aucune"),i=>i.piece_remplacee);
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([k,n])=>({lib:lib(k),n}));
+}
+function mailtoOT(r){
+  const d=VALID.decisions[r.id]; if(!d||!d.ot) return "#";
+  const e=r.equipement_id?EQ_DE[r.equipement_id]:null, action=texteBrut(maj1(r.recommandation.split(";")[0].trim().replace(/\.$/,"")));
+  const objet=`${d.ot} – ${r.equipement_id||r.titre} – ${action}`;
+  const pieces=e?piecesAPreparer(e.equipement_id).map(p=>`${p.lib} (${p.n})`).join(", ")||"aucune pièce identifiée":"sans objet";
+  const corps=[`Bonjour,`,``,`Ordre de travail ${d.ot} – référence ${r.id} (validée par ${d.par} le ${quandFR(d.quand)}).`,``,
+    e?`Équipement : ${e.equipement_id} – ${lib(e.famille)} – ${lib(e.site)}, ${secteur(e.localisation)} – criticité ${lib(e.criticite).toLowerCase()}, score ${nf(e.b.score)}/100, rang ${e.b.rang}/30.`:`Recommandation transverse : ${r.titre}.`,
+    `Constat : ${texteBrut(maj1(r.constat))}`,`Action à réaliser : ${texteBrut(maj1(r.recommandation))}`,`Pièces à préparer : ${pieces}.`,
+    d.commentaire?`Commentaire du validateur : ${d.commentaire}`:"",``,`Merci d'assigner un technicien et une date d'intervention.`,``,
+    `BaliseIA – prototype, données fictives. Toute recommandation doit être validée par un expert métier.`].filter(x=>x!==null).join("\n");
+  return `mailto:?subject=${encodeURIComponent(objet)}&body=${encodeURIComponent(corps)}`;
+}
+function genererOT(id){
+  const d=VALID.decisions[id], r=REC_DE[id]; if(!d || d.code!=="validee") return;
+  if(!d.ot){
+    let n=parseInt(lire(CLE_OT)||"0",10); if(!(n>=0)) n=0; n++; ecrire(CLE_OT,String(n));
+    d.ot=`OT-2026-${String(n).padStart(3,"0")}`; d.otQuand=new Date().toISOString();
+    const val=VALID.journal.find(j=>j.rec===id && j.decision==="Validée"); if(val) val.ot=d.ot;   // la colonne « N° OT » se remplit
+    VALID.journal.unshift({quand:d.otQuand,par:d.par,rec:id,equipement:r.equipement_id||r.titre,decision:"OT généré",commentaire:"",ot:d.ot});
+    sauverValid();
+    document.getElementById("rec-"+id).outerHTML=carteRec(r); rendreJournal(); rendre(false);
+  }
+  ouvrirFicheOT(id);
+}
+function ouvrirFicheOT(id){
+  const d=VALID.decisions[id], r=REC_DE[id], e=r.equipement_id?EQ_DE[r.equipement_id]:null;
+  const logo=document.querySelector(".encart .logo"), pieces=e?piecesAPreparer(e.equipement_id):[];
+  const ligne=(l,v)=>`<tr><th>${l}</th><td>${v}</td></tr>`;
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${d.ot} – Ordre de travail BaliseIA</title><style>
+  @page{size:A4;margin:14mm}
+  *{box-sizing:border-box} body{margin:0;background:#eef1f4;font:10.5pt/1.45 "Segoe UI",Arial,sans-serif;color:#1c2733}
+  .barre{position:sticky;top:0;background:#0d2f55;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px}
+  .barre b{flex:1} .barre button{font:inherit;border:0;border-radius:6px;padding:7px 14px;background:#fff;color:#0d2f55;font-weight:600;cursor:pointer}
+  .feuille{width:210mm;min-height:297mm;margin:16px auto;background:#fff;padding:14mm;box-shadow:0 2px 10px rgba(13,47,85,.15)}
+  header{display:flex;align-items:center;gap:12px;border-bottom:2px solid #0b4f8a;padding-bottom:4mm;margin-bottom:5mm}
+  header img{width:16mm;height:16mm} header h1{margin:0;font-size:17pt;color:#0d2f55;flex:1}
+  .proto{border:1px solid #f3d2b3;background:#fdf1e6;color:#8a4410;border-radius:4px;padding:1.5mm 3mm;font-size:9pt;font-weight:600;white-space:nowrap}
+  h2{font-size:11.5pt;color:#0d2f55;margin:5mm 0 2mm;border-bottom:1px solid #dfe5eb;padding-bottom:1mm}
+  table{width:100%;border-collapse:collapse} th,td{text-align:left;vertical-align:top;padding:1.6mm 2.5mm;border:1px solid #dfe5eb}
+  th{width:38%;background:#eef4fa;color:#0d2f55;font-weight:600} .grille{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+  .ref{font-family:Consolas,monospace;font-size:.92em;white-space:nowrap}
+  .vide{height:9mm} .obs{height:30mm} .sig{height:28mm;vertical-align:bottom;color:#6b7785;font-size:9pt}
+  .num{font-size:14pt;font-weight:700;color:#0b4f8a}
+  footer{margin-top:6mm;font-size:8.5pt;color:#6b7785;border-top:1px solid #dfe5eb;padding-top:2mm}
+  @media print{body{background:#fff}.barre{display:none}.feuille{width:auto;min-height:0;margin:0;padding:0;box-shadow:none}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact} table,.grille{break-inside:avoid}}
+  </style></head><body>
+  <div class="barre"><b>${d.ot} – fiche d'intervention</b><button type="button" onclick="window.print()">Imprimer / Enregistrer en PDF</button></div>
+  <div class="feuille">
+   <header>${logo?`<img src="${logo.src}" alt="Logo ASECNA">`:""}<h1>Ordre de travail – Maintenance du balisage</h1><span class="proto">Prototype – données fictives</span></header>
+   <table>${ligne("N° d'ordre de travail",`<span class="num" id="numOT">${d.ot}</span>`)}${ligne("Date d'émission",quandFR(d.otQuand))}${ligne("Référence",`<span class="ref">${r.id}</span> – Base BaliseIA, section 11`)}</table>
+   ${e?`<h2>Équipement</h2><table id="blocEquipement">${ligne("Identifiant",`<span class="ref">${e.equipement_id}</span>`)}${ligne("Famille",lib(e.famille))}${ligne("Site",lib(e.site))}${ligne("Secteur",maj1(secteur(e.localisation)))}${ligne("Criticité",lib(e.criticite))}${ligne("Score de priorité",`${nf(e.b.score)} / 100`)}${ligne("Rang",`${e.b.rang} / 30`)}</table>`
+      :`<h2>Objet</h2><table>${ligne("Recommandation transverse",esc(r.titre))}</table>`}
+   <h2>Constat</h2><p>${texteBase(maj1(r.constat))}</p>
+   <h2>Action à réaliser</h2><p>${texteBase(maj1(r.recommandation))}</p>
+   <h2>Pièces à préparer</h2><p id="pieces">${e?(pieces.length?pieces.map(p=>`${p.lib} (${p.n} remplacement${p.n>1?"s":""} sur les incidents de l'équipement)`).join(" ; "):"Aucune pièce identifiée dans l'historique."):"Sans objet (recommandation transverse)."}</p>
+   <h2>Intervention</h2><table>${ligne("Technicien assigné",`<div class="vide"></div>`)}${ligne("Date prévue",`<div class="vide"></div>`)}${ligne("Observations",`<div class="obs"></div>`)}</table>
+   <h2>Validation de la recommandation</h2><table>${ligne("Validée par",esc(d.par))}${ligne("Date et heure",quandFR(d.quand))}${ligne("Commentaire",d.commentaire?esc(d.commentaire):"–")}</table>
+   <h2>Signatures</h2><div class="grille"><table><tr><th>Chef d'équipe</th></tr><tr><td class="sig">Nom, date et signature</td></tr></table>
+     <table><tr><th>Technicien</th></tr><tr><td class="sig">Nom, date et signature</td></tr></table></div>
+   <footer>BaliseIA – ${d.ot} – Prototype Innovation Days 2026, données fictives : ne pas utiliser pour la maintenance réelle. Toute recommandation doit être validée par un expert métier.</footer>
+  </div></body></html>`;
+  const w=window.open("","_blank");
+  if(!w){ alert("La fenêtre de l'ordre de travail a été bloquée par le navigateur : autorisez les fenêtres pour ce fichier."); return; }
+  w.document.open(); w.document.write(html); w.document.close();
 }
 function exporterJournal(){
   const cel = v => { v=String(v??""); return /[";\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v; };
@@ -861,15 +1019,19 @@ function exporterJournal(){
 }
 document.getElementById("v-recommandations").addEventListener("click",ev=>{
   const b=ev.target.closest("button[data-action]"); if(!b) return;
-  const carte=b.closest("[data-rec]"), id=carte.dataset.rec, form=carte.querySelector("form");
-  if(b.dataset.action==="infos") return envoyer(`Explique-moi la recommandation ${id} et les incidents qui la justifient.`);
-  decider(id,b.dataset.action,form);
+  const carte=b.closest("[data-rec]"), id=carte.dataset.rec, form=carte.querySelector("form"), a=b.dataset.action;
+  if(a==="infos") return envoyer(`Explique-moi la recommandation ${id} et les incidents qui la justifient.`);
+  if(a==="decider"){ OUVERTES.add(id); carte.classList.add("form-ouvert"); return form.nom.focus(); }
+  if(a==="annuler"){ OUVERTES.delete(id); carte.classList.remove("form-ouvert"); form.querySelector(".msg").textContent=""; form.nom.classList.remove("erreur"); return; }
+  if(a==="ot") return genererOT(id);
+  decider(id,a,form);
 });
 document.getElementById("v-recommandations").addEventListener("input",ev=>{ if(ev.target.name==="nom"){ ev.target.classList.remove("erreur"); ev.target.form.querySelector(".msg").textContent=""; } });
 document.getElementById("btnExport").onclick=exporterJournal;
 document.getElementById("btnReset").onclick=()=>{
   if(!confirm("Effacer toutes les décisions et le journal de validation de cette démonstration ?")) return;
-  VALID={decisions:{},journal:[]}; sauverValid(); rendreRecommandations(); rendre(false);
+  VALID={decisions:{},journal:[]}; sauverValid(); ecrire(CLE_OT,""); OUVERTES.clear();   // compteur d'OT remis à 001
+  rendreRecommandations(); rendre(false);
 };
 
 /* ====================== Rapports ====================== */
@@ -928,10 +1090,14 @@ function statutTexte(id){
   if(!s.d) return {ton:"attention",txt:"À valider"};
   return {ton:s.ton,txt:`${s.lib} par ${esc(s.d.par)} le ${quandFR(s.d.quand)}${s.d.ot?` · OT n° ${esc(s.d.ot)}`:""}`};
 }
-function tableau(entetes,lignes,classes=[]){
-  return `<table class="rt"><thead><tr>${entetes.map((h,k)=>`<th class="${classes[k]||""}">${h}</th>`).join("")}</tr></thead><tbody>${
+function tableau(entetes,lignes,classes=[],largeurs=null){
+  const court=lignes.length<=12;   // tableau court : jamais coupé entre deux pages
+  return `<table class="rt${court?" court":""}"${largeurs?' style="table-layout:fixed"':""}>${largeurs?`<colgroup>${largeurs.map(w=>`<col style="width:${w}">`).join("")}</colgroup>`:""}<thead><tr>${entetes.map((h,k)=>`<th class="${classes[k]||""}">${h}</th>`).join("")}</tr></thead><tbody>${
     lignes.length?lignes.map(l=>`<tr>${l.map((c,k)=>`<td class="${classes[k]||""}">${c}</td>`).join("")}</tr>`).join(""):`<tr><td colspan="${entetes.length}" class="secondaire">Aucun élément sur la période.</td></tr>`}</tbody></table>`;
 }
+/* Petit graphique en barres intégré au tableau (la première barre plus foncée) */
+const barre = (n,total,k) => { const pct=total?Math.round(100*n/total):0;
+  return `<span class="barre-cel" aria-hidden="true"><i style="width:${total?100*n/total:0}%;background:${k===0?C.fonce:C.bleu}"></i></span>${pct} %`; };
 function barresMois(id,pts,sel){
   const box=document.getElementById(id); box.innerHTML="";
   const W=640,H=200,L=24,B=30,T=22, max=Math.max(1,...pts.map(p=>p.v)), bw=(W-L-8)/pts.length;
@@ -956,85 +1122,93 @@ function genererRapport(){
   moisPeriode().forEach(m=>{ R.parMois[m]=R.parMois[m]||0; });
   RAPPORT=R;
   const pied=`<div class="pied-feuille">BaliseIA – Rapport généré le ${genereTxt} – Toute recommandation doit être validée par un expert métier</div>`;
-  const feuille=(id,html)=>`<article class="feuille" id="${id}">${html}${pied}</article>`;
+  /* Sauts de page uniquement : après la garde, avant les sections 5, 6 et 7 */
+  const feuille=(html)=>`<article class="feuille">${html}${pied}</article>`;
+  const sect=(id,html)=>`<section class="sect" id="${id}">${html}</section>`;
   const logo=document.querySelector(".encart .logo");
-  /* 2. Indicateurs */
-  const lignesInd=IND.map(([k,l,f,dec])=>[l,`<span data-k="${k}">${R.ind[k]==null?"–":f(R.ind[k])}</span>`,
-    R.prec?(R.prec[k]==null?"–":f(R.prec[k])):"–", delta(R.ind[k],R.prec?R.prec[k]:null,dec)]);
+  /* 2. Indicateurs : colonnes de comparaison seulement s'il existe une période précédente */
+  const lignesInd=IND.map(([k,l,f,dec])=>{ const v=[l,`<span data-k="${k}">${R.ind[k]==null?"–":f(R.ind[k])}</span>`];
+    return R.prec ? v.concat([R.prec[k]==null?"–":f(R.prec[k]), delta(R.ind[k],R.prec[k],dec)]) : v; });
+  const entInd=["Indicateur",esc(maj1(mois?moisLong(mois):"Toute la période"))].concat(R.prec?[esc(maj1(moisLong(mp))),"Écart"]:[]);
   /* 4. Causes et pièces */
   const cau=Object.entries(compter(R.pannes,i=>i.type_panne)).sort((a,b)=>b[1]-a[1]||lib(a[0]).localeCompare(lib(b[0]),"fr"));
   const pie=Object.entries(compter(inc.filter(i=>i.piece_remplacee&&i.piece_remplacee.toLowerCase()!=="aucune"),i=>i.piece_remplacee)).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
   const totP=somme(pie.map(x=>x[1]));
-  /* 5. Équipements prioritaires (valeurs de la Base, section 3) */
-  const pEq=compter(R.pannes,i=>i.equipement_id);
+  /* 5. Équipements prioritaires : score, MTTR et cause de la Base corrigée (data.json) */
   const top=EQ.filter(e=>!site||e.site===site).slice(0,10);
+  /* 6. Anomalies : détail, sauf les incidents non clôturés regroupés en une ligne */
+  const ordre=Object.keys(TYPES_ANO);
+  const detail=R.anomalies.filter(a=>a.type!=="NON_CLOTURE").sort((a,b)=>ordre.indexOf(a.type)-ordre.indexOf(b.type)||a.i.incident_id.localeCompare(b.i.incident_id));
+  const nonClos=R.anomalies.filter(a=>a.type==="NON_CLOTURE").map(a=>a.i).sort((a,b)=>a.incident_id.localeCompare(b.incident_id));
+  /* Libellés de traitement abrégés pour le rapport imprimé (détail complet : page Qualité des données) */
+  const TRT_COURT={DOUBLON:"Seconde occurrence supprimée",DUREE_MANQUANTE:"Exclue des durées et du MTTR",DUREE_NEGATIVE:"Exclue des durées et du MTTR",
+    INCIDENT_LONG:"Conservé, à examiner",INCOHERENCE:"À vérifier par l'expert",NON_CLOTURE:"Compté, exclu du MTTR"};
+  const TYPE_COURT={INCOHERENCE:"Incohérence",INCIDENT_LONG:"Incident long"};
+  const lignesAno=detail.map(a=>[a.i.incident_id,a.i.equipement_id,TYPE_COURT[a.type]||TYPES_ANO[a.type].lib,esc(a.detail),TRT_COURT[a.type]]);
+  if(nonClos.length) lignesAno.push([`<b>${nIncidents(nonClos.length)}</b>`,`${new Set(nonClos.map(i=>i.equipement_id)).size} équipement${new Set(nonClos.map(i=>i.equipement_id)).size>1?"s":""}`,
+    "Non clôturé",`<span class="liste-ids">${nonClos.map(i=>i.incident_id).join(", ")}</span>`,TRT_COURT.NON_CLOTURE]);
   /* 7. Recommandations concernées */
   const eqPeriode=new Set(inc.map(i=>i.equipement_id));
   const recs=REC.filter(r=>r.equipement_id ? (!site||r.site===site) && (!mois||eqPeriode.has(r.equipement_id)) : true);
-  const ordre=Object.keys(TYPES_ANO);
-  document.getElementById("rapport").innerHTML=
-    `<article class="feuille garde" id="r-garde">
+
+  const garde=`<article class="feuille garde" id="r-garde">
       ${logo?`<img class="logo-r" src="${logo.src}" alt="Logo ASECNA">`:""}
       <div class="surtitre">ATSA-ASECNA Innovation Days 2026 – Groupe G4 UAM</div>
       <h1>Rapport de maintenance du balisage – ${esc(maj1(periodeLib))} – ${siteLib==="Tous"?"Tous les sites":esc(siteLib)}</h1>
       <div class="meta"><span>Période : <b>${esc(maj1(periodeLib))}</b></span><span>Site : <b>${siteLib==="Tous"?"Tous (Dakar, Niamey, Abidjan)":esc(siteLib)}</b></span>
        <span>Date de génération : <b>${genereTxt}</b></span><span>Source : Base BaliseIA et historique des incidents</span></div>
-      <div><span class="demo">Données fictives – document de démonstration</span></div>${pied}</article>`+
-    feuille("r-synthese",`<h2>1. Synthèse</h2><ol class="constats">${phrasesRapport(R).map(t=>`<li>${t}</li>`).join("")}</ol>
-      <p class="src-r">Constats rédigés automatiquement à partir des données de la période (Base BaliseIA, sections 2, 7 et 12).</p>`)+
-    feuille("r-indicateurs",`<h2>2. Indicateurs</h2>
-      ${tableau(["Indicateur",esc(maj1(mois?moisLong(mois):"Toute la période")),R.prec?esc(maj1(moisLong(mp))):"Période précédente","Écart"],lignesInd,["","num","num","num"])}
-      ${R.prec?"":`<p class="secondaire">${mois?"Aucune donnée pour le mois précédent.":"Pas de période précédente comparable : les données commencent le "+fr(DATA.meta.periode[0])+"."}</p>`}
-      <p class="src-r">Règles de calcul : Base BaliseIA, section 1 ; indicateurs : section 2 ; détail mensuel : sections 7 et 12. ▲ hausse, ▼ baisse par rapport à la période précédente.</p>`)+
-    feuille("r-tendance",`<h2>3. Tendance</h2><h3>Pannes par mois${site?` – ${lib(site)}`:""}${mois?` (${moisLong(mois)} en évidence)`:""}</h3><div id="rGraphMois"></div>
-      <p class="src-r">Pannes hors contrôles périodiques. Juin 2026 est incomplet (données jusqu'au ${fr(DATA.meta.periode[1])}). Source : Base BaliseIA, sections 7 et 12.</p>`)+
-    feuille("r-causes",`<h2>4. Causes de panne et pièces remplacées</h2>
-      <div class="deux"><div><h3>Causes de panne (hors contrôles)</h3>${tableau(["Cause","Pannes","Part"],cau.map(([t,n])=>[lib(t),n,Math.round(100*n/R.pannes.length)+" %"]),["","num","num"])}<div id="rGraphCauses"></div></div>
-      <div><h3>Pièces remplacées</h3>${tableau(["Pièce","Remplacements","Part"],pie.map(([t,n])=>[lib(t),n,Math.round(100*n/totP)+" %"]),["","num","num"])}<div id="rGraphPieces"></div></div></div>
-      <p class="src-r">« Aucune » n'est pas une pièce et n'est pas comptée. Source : Base BaliseIA, sections 8 et 9.</p>`)+
-    feuille("r-equipements",`<h2>5. Équipements prioritaires</h2>
-      ${tableau(["Rang","Équipement","Site","Criticité","Score","MTTR","Cause principale","Pannes (période)","Raison"],
-        top.map(e=>[e.b.rang,`<b>${e.equipement_id}</b>`,lib(e.site),lib(e.criticite),nf(e.b.score),nf(e.b.mttr)+" h",lib(e.b.cause),pEq[e.equipement_id]||0,texteBase(e.raison)]),
-        ["num","nowrap","","","num","num","","num",""])}
-      <p class="src-r">Rang, score, MTTR et cause principale : valeurs de la Base BaliseIA, section 3 (fiches : section 4). Score = 40 % pannes + 30 % criticité + 20 % durée + 10 % ancienneté.</p>`)+
-    feuille("r-anomalies",`<h2>6. Anomalies de données de la période</h2>
-      ${tableau(["Incident","Équipement","Type","Détail","Traitement appliqué"],
-        R.anomalies.slice().sort((a,b)=>ordre.indexOf(a.type)-ordre.indexOf(b.type)||a.i.incident_id.localeCompare(b.i.incident_id))
-          .map(a=>[`<span class="nowrap">${a.i.incident_id}</span>`,`<span class="nowrap">${a.i.equipement_id}</span>`,TYPES_ANO[a.type].lib,esc(a.detail),TYPES_ANO[a.type].trt]),["nowrap","nowrap","","",""])}
-      <p class="src-r">${R.anomalies.length} anomalie${R.anomalies.length>1?"s":""}. Source : Base BaliseIA, section 10.</p>`)+
-    feuille("r-recommandations",`<h2>7. Recommandations</h2>
+      <div><span class="demo">Données fictives – document de démonstration</span></div>${pied}</article>`;
+  const s1=sect("r-synthese",`<h2>1. Synthèse</h2><ol class="constats">${phrasesRapport(R).map(t=>`<li>${t}</li>`).join("")}</ol>
+      <p class="src-r">Constats rédigés automatiquement à partir des données de la période (Base BaliseIA, sections 2, 7 et 12).</p>`);
+  const s2=sect("r-indicateurs",`<h2>2. Indicateurs</h2>
+      ${tableau(entInd,lignesInd,["","num","num","num"],R.prec?["46%","18%","18%","18%"]:["70%","30%"])}
+      <p class="src-r">${R.prec?"▲ hausse, ▼ baisse par rapport au mois précédent. ":mois?"Aucune donnée pour le mois précédent. ":`Pas de période précédente : les données commencent le ${fr(DATA.meta.periode[0])}. `}Règles : Base BaliseIA, section 1 ; indicateurs : section 2 ; détail mensuel : sections 7 et 12.</p>`);
+  const s3=sect("r-tendance",`<h2>3. Tendance – pannes par mois${site?` (${lib(site)})`:""}${mois?`, ${moisLong(mois)} en évidence`:""}</h2><div class="graphe" id="rGraphMois"></div>
+      <p class="src-r">Pannes hors contrôles périodiques. Juin 2026 est incomplet (données jusqu'au ${fr(DATA.meta.periode[1])}). Source : Base BaliseIA, sections 7 et 12.</p>`);
+  const s4=sect("r-causes",`<h2>4. Causes de panne et pièces remplacées</h2>
+      <div class="deux"><div><h3>Causes de panne (hors contrôles)</h3>${tableau(["Cause","Pannes","Part"],cau.map(([t,n],k)=>[lib(t),`${n} sur ${R.pannes.length}`,barre(n,R.pannes.length,k)]),["","num","num"],["38%","27%","35%"])}</div>
+      <div><h3>Pièces remplacées</h3>${tableau(["Pièce","Remplacements","Part"],pie.map(([t,n],k)=>[lib(t),n,barre(n,totP,k)]),["","num","num"],["34%","31%","35%"])}</div></div>
+      <p class="src-r">Parts calculées sur les pannes hors contrôles périodiques. « Aucune » n'est pas une pièce. Source : Base BaliseIA, sections 8 et 9.</p>`);
+  const s5=sect("r-equipements",`<h2>5. Équipements prioritaires</h2>
+      ${tableau(["Rang","Équipement","Site","Criticité","Score","MTTR","Cause principale","Raison"],
+        top.map(e=>[e.b.rang,`<b>${e.equipement_id}</b>`,lib(e.site),lib(e.criticite),nf(e.b.score),nf(e.b.mttr)+" h",lib(e.b.cause),texteBase(e.raison)]),
+        ["num","nowrap","","","num","num","",""],["6%","17%","9%","8%","7%","8%","13%","32%"])}
+      <p class="src-r">Rang, score, MTTR et cause principale : Base BaliseIA corrigée, section 3 (fiches : section 4), mêmes valeurs dans tout l'outil. Score = 40 % pannes + 30 % criticité + 20 % durée + 10 % ancienneté.</p>`);
+  const s6=sect("r-anomalies",`<h2>6. Anomalies de données de la période</h2>
+      ${tableau(["Incident","Équipement","Type","Détail","Traitement appliqué"],lignesAno,["nowrap","nowrap","","",""],["11%","14%","15%","36%","24%"])}
+      <p class="src-r">${R.anomalies.length} anomalie${R.anomalies.length>1?"s":""} au total${nonClos.length?`, dont ${nIncidents(nonClos.length)} non clôturé${nonClos.length>1?"s":""} regroupé${nonClos.length>1?"s":""} sur une ligne`:""}. Source : Base BaliseIA, section 10.</p>`);
+  const s7=sect("r-recommandations",`<h2>7. Recommandations</h2>
       <p>Recommandations de la Base BaliseIA (section 11) concernant ${site?`le site de ${lib(site)}`:"les sites"}${mois?" et les équipements ayant eu un incident sur la période":""}, avec leur statut de validation au ${genereTxt}.</p>
       ${recs.map(r=>{ const st=statutTexte(r.id), s=statutRec(r.id);
-        return `<div class="rec-r s-${s.ton}"><header><b>${r.id}</b><span>${r.equipement_id?`${r.equipement_id} · ${lib(r.famille)} · ${lib(r.site)}`:esc(r.titre)+" (transverse)"}</span><span class="st ${st.ton}">${st.txt}</span></header>
-          <p><b>Constat :</b> ${texteBase(maj1(r.constat))}</p><p><b>Recommandation :</b> ${texteBase(maj1(r.recommandation))}</p></div>`; }).join("")||'<p class="secondaire">Aucune recommandation ne concerne cette sélection.</p>'}
-      <p class="src-r">Aucune action n'est déclenchée automatiquement : la décision appartient à l'expert métier.</p>`)+
-    feuille("r-methode",`<h2>8. Méthode et limites</h2>
-      <h3>Règles de calcul (Base BaliseIA, section 1)</h3><ul class="methode">
-       <li>Doublon : l'incident INC-0046 présent deux fois à l'identique est compté une seule fois (180 incidents après nettoyage).</li>
-       <li>Durée valide : une durée manquante ou négative est exclue des sommes, moyennes et du MTTR, mais l'incident reste compté.</li>
+        return `<div class="rec-r s-${s.ton}" data-rec="${r.id}" data-eq="${r.equipement_id||""}"><header><b>${r.id}</b><span>${r.equipement_id?`${r.equipement_id} · ${lib(r.famille)} · ${lib(r.site)}`:esc(r.titre)+" (transverse)"}</span><span class="st ${st.ton}">${st.txt}</span></header>
+          <p class="constat"><b>Constat :</b> ${texteBase(maj1(r.constat))}</p><p><b>Recommandation :</b> ${texteBase(maj1(r.recommandation))}</p></div>`; }).join("")||'<p class="secondaire">Aucune recommandation ne concerne cette sélection.</p>'}
+      <p class="src-r">Aucune action n'est déclenchée automatiquement : la décision appartient à l'expert métier.</p>`);
+  const s8=sect("r-methode",`<h2>8. Méthode et limites</h2>
+      <div class="deux methode-bloc"><div><h3>Règles de calcul (Base BaliseIA, section 1)</h3><ul class="methode">
+       <li>Doublon : INC-0046, présent deux fois à l'identique, n'est compté qu'une fois (180 incidents).</li>
+       <li>Durée valide : une durée manquante ou négative est exclue des sommes, moyennes et du MTTR ; l'incident reste compté.</li>
        <li>Panne : tout incident hors contrôle périodique.</li>
-       <li>MTTR : moyenne des durées valides des incidents clôturés ; les incidents en cours en sont exclus.</li>
+       <li>MTTR : moyenne des durées valides des incidents clôturés.</li>
        <li>Pièces : « aucune » n'est pas une pièce.</li>
-       <li>Score de priorité : 40 % pannes + 30 % criticité + 20 % durée totale + 10 % ancienneté, chaque critère ramené entre 0 et 1 sur les 30 équipements.</li>
-       <li>Incident long : durée supérieure à 24 h, conservé mais signalé.</li></ul>
-      <h3>Sources</h3><ul class="methode">
-       <li>Historique des incidents et des interventions (fichier DONNEES_04_BALISAGE_MAINTENANCE.xlsx), recalculé selon les règles ci-dessus.</li>
-       <li>Base BaliseIA : section 1 (règles), 2 (indicateurs globaux), 3 (classement et score), 4 (fiches équipement), 7 et 12 (synthèses mensuelles), 8 (causes récurrentes), 9 (pièces et actions), 10 (anomalies), 11 (recommandations).</li>
-       <li>Statuts de validation : journal de validation de l'outil BaliseIA (navigateur de l'utilisateur).</li></ul>
+       <li>Score : 40 % pannes + 30 % criticité + 20 % durée + 10 % ancienneté, chaque critère ramené entre 0 et 1 sur les 30 équipements.</li>
+       <li>Incident long : plus de 24 h, conservé mais signalé.</li></ul></div>
+      <div><h3>Sources</h3><ul class="methode">
+       <li>Historique des incidents et interventions (DONNEES_04_BALISAGE_MAINTENANCE.xlsx), recalculé selon ces règles.</li>
+       <li>Base BaliseIA corrigée : sections 1, 2, 3, 4, 7, 8, 9, 10, 11 et 12 (corrections listées dans la page Qualité des données).</li>
+       <li>Statuts de validation : journal de validation de l'outil BaliseIA.</li></ul>
       <h3>Limites</h3><ul class="methode">
-       <li>Données entièrement fictives : ce document est une démonstration et ne doit pas servir à la maintenance réelle.</li>
-       <li>Juin 2026 est incomplet (données arrêtées au ${fr(DATA.meta.periode[1])}).</li>
-       <li>Aucun coût ni stock de pièces dans les données : le rapport ne traite pas les aspects financiers.</li>
-       <li>Délai d'intervention constant (3 h) : la réactivité ne peut pas être analysée.</li>
-       <li>Toute recommandation doit être validée par un expert métier.</li></ul>`);
+       <li>Données entièrement fictives : document de démonstration.</li>
+       <li>Juin 2026 incomplet (données arrêtées au ${fr(DATA.meta.periode[1])}).</li>
+       <li>Aucun coût ni stock de pièces dans les données.</li>
+       <li>Délai d'intervention constant (3 h) : réactivité non analysable.</li>
+       <li>Toute recommandation doit être validée par un expert métier.</li></ul></div></div>`);
+  document.getElementById("rapport").innerHTML = garde + feuille(s1+s2+s3+s4) + feuille(s5) + feuille(s6) + feuille(s7+s8);
   barresMois("rGraphMois",moisPeriode().map(m=>({m,v:R.parMois[m]})),mois);
-  barresH("rGraphCauses",cau.map(([k,v])=>({l:lib(k),v})),{G:120,W:360});
-  barresH("rGraphPieces",pie.map(([k,v])=>({l:lib(k),v})),{G:90,W:360});
   /* Pied de page imprimé : numérotation gérée par le navigateur (@page) */
   let st=document.getElementById("stylePageRapport");
   if(!st){ st=document.createElement("style"); st.id="stylePageRapport"; document.head.appendChild(st); }
   const piedTxt=`BaliseIA – Rapport généré le ${genereTxt} – page `.replace(/"/g,"'");
-  st.textContent=`@media print{@page{size:A4;margin:16mm 15mm 18mm;
+  st.textContent=`@media print{@page{size:A4;margin:15mm;
     @bottom-center{content:"${piedTxt}" counter(page) "/" counter(pages) " – Toute recommandation doit être validée par un expert métier";font-family:"Segoe UI",Arial,sans-serif;font-size:8pt;color:#6b7785}}}`;
   document.getElementById("btnImprimer").disabled=false;
 }
@@ -1138,10 +1312,12 @@ function rendreQualite(inc){
     .map(a=>{ const T=TYPES_ANO[a.type];
       return `<tr><td class="nowrap"><span class="ref">${a.i.incident_id}</span></td><td class="nowrap">${a.i.equipement_id}</td><td>${lib(a.i.site)}</td>
       <td class="nowrap"><span class="statut ${T.ton||"neutre"}">${T.lib}</span></td><td>${esc(a.detail)}</td><td class="secondaire">${T.trt}</td></tr>`; }).join("");
-  const ecarts=DATA.ecarts_base.filter(x=>!SITE||EQ_DE[x.equipement_id].site===SITE);
+  const siteDe = el => el.startsWith("EQ-") ? EQ_DE[el].site : (REC_DE[el]||{}).site;
+  const val = (champ,v) => typeof v==="number" ? nf(v) : champ==="Cause principale" ? lib(v) : texteBase(String(v));
+  const ecarts=DATA.ecarts_base.filter(x=>!SITE||!siteDe(x.element)||siteDe(x.element)===SITE);
   document.getElementById("carteEcarts").hidden=!ecarts.length;
-  document.getElementById("tEcarts").innerHTML=ecarts.map(x=>`<tr><td class="nowrap">${x.equipement_id}</td>
-    <td>${x.champ==="score"?"Score (recalcul)":x.champ==="mttr"?"MTTR en heures (recalcul)":esc(maj1(x.champ))}</td><td class="num">${nf(x.base)}</td><td class="num">${nf(x.recalcul)}</td></tr>`).join("");
+  document.getElementById("tEcarts").innerHTML=ecarts.map(x=>`<tr><td class="nowrap">${x.element.startsWith("REC")?`<span class="rec-id">${x.element}</span>`:x.element}</td>
+    <td>${esc(x.champ)}</td><td>${val(x.champ,x.base)}</td><td><b>${val(x.champ,x.autre)}</b></td><td class="secondaire">${esc(x.traitement)}</td></tr>`).join("");
 }
 
 /* ====================== Rendu global ====================== */
@@ -1175,6 +1351,7 @@ function naviguer(){
   document.body.dataset.vue=v;   // l'impression du rapport n'est active que sur la page Rapports
   fermerFiche();
   const carte=cible && document.getElementById("rec-"+cible);
+  if(v==="recommandations" && carte && !OUVERTES.has(cible)){ OUVERTES.add(cible); carte.classList.add("form-ouvert"); }
   if(v==="recommandations" && carte){
     requestAnimationFrame(()=>{ carte.scrollIntoView({block:"start"}); carte.classList.add("flash"); setTimeout(()=>carte.classList.remove("flash"),1800);
       carte.querySelector("input[name=nom]")?.focus({preventScroll:true}); });
@@ -1184,7 +1361,8 @@ window.addEventListener("hashchange",naviguer);
 
 /* ====================== Chat BaliseIA ====================== */
 const estUrl = u => /^https?:\/\//i.test((u||"").trim());
-const tokenActif = () => [lire(CLE_TOKEN),TOKEN_ENDPOINT].find(estUrl) || "";
+const secretValide = s => !!s && !/COLLER ICI|^__DIRECTLINE/i.test(s) && s.trim().length >= 20;
+const secretActif = () => [lire(CLE_SECRET),DIRECTLINE_SECRET].find(secretValide)?.trim() || "";
 const iframeActive = () => lire(CLE_AGENT) || COPILOT_URL;
 let chatStore=null, chatMode=null, minuteur=null, fileAttente=[];
 
@@ -1216,63 +1394,89 @@ const middleware = () => next => action => {
   if(action.type==="DIRECT_LINE/POST_ACTIVITY" && action.payload?.activity?.type==="message") attente(true);
   else if(action.type==="DIRECT_LINE/INCOMING_ACTIVITY" && enAttente){
     const a=action.payload?.activity;
-    if(a?.from?.role==="bot"){
+    if(a?.from && a.from.role!=="user"){   // activité de l'agent (l'écho de nos propres messages a le rôle « user »)
       if(estProgression(a)) clearTimeout(finTour);                       // le bot travaille encore
       else if(estReponseFinale(a)){ clearTimeout(finTour); finTour=setTimeout(()=>attente(false),DELAI_FIN_TOUR_MS); }
     }
   }
   return next(action);
 };
+/* Mise en page « ChatGPT » : réponses de l'agent sans bulle, questions de l'utilisateur en bulle claire à droite */
 const STYLE = {
-  primaryFont:"'Segoe UI', Tahoma, Arial, sans-serif", backgroundColor:"#f7f9fb",
-  bubbleBackground:"#ffffff", bubbleBorderColor:"#e1e8f0", bubbleBorderWidth:1, bubbleBorderRadius:10,
-  bubbleFromUserBackground:"#0b4f8a", bubbleFromUserTextColor:"#ffffff", bubbleFromUserBorderColor:"#0b4f8a",
-  bubbleFromUserBorderWidth:1, bubbleFromUserBorderRadius:10,
-  bubbleMaxWidth:1100, bubbleMinWidth:0,           // largeur effective réglée en CSS (bulles élargies)
-  botAvatarInitials:"", userAvatarInitials:"",      // pas d'avatar texte
-  hideUploadButton:true, sendBoxBackground:"#f5f8fb", sendBoxButtonColor:"#0b4f8a",
+  primaryFont:"'Segoe UI', Tahoma, Arial, sans-serif", backgroundColor:"#ffffff",
+  bubbleBackground:"transparent", bubbleBorderWidth:0, bubbleBorderRadius:0, bubbleNubSize:0,
+  bubbleFromUserBackground:"#eef3f8", bubbleFromUserTextColor:"#1c2733", bubbleFromUserBorderWidth:0,
+  bubbleFromUserBorderRadius:18, bubbleFromUserNubSize:0,
+  bubbleMaxWidth:860, bubbleMinWidth:0,
+  botAvatarInitials:"", userAvatarInitials:"",      // pas d'avatar
+  hideUploadButton:true, sendBoxBackground:"#ffffff", sendBoxButtonColor:"#0b4f8a", sendBoxHeight:48,
   typingAnimationDuration:120000
 };
-/* Modèle officiel Copilot Studio : regionalchannelsettings -> domaine Direct Line régional, puis token */
-async function connecterWebChat(endpoint){
-  await chargerScript(WEBCHAT_JS);
-  const url=new URL(endpoint);
-  const apiVersion=url.searchParams.get("api-version") || API_VERSION_DEFAUT;
-  const json = r => { if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); };
-  const [domaineRegional, token] = await Promise.all([
-    fetch(new URL(`/powervirtualagents/regionalchannelsettings?api-version=${apiVersion}`, url)).then(json).then(j=>j?.channelUrlsById?.directline),
-    fetch(url).then(json).then(j=>j?.token)
-  ]);
-  if(!domaineRegional || !token) throw new Error("Réponse du token endpoint incomplète");
-  const directLine = window.WebChat.createDirectLine({ domain: new URL("v3/directline", domaineRegional).toString(), token });
-  const abo = directLine.connectionStatus$.subscribe({ next(statut){
-    if(statut===2){   // Online : startConversation affiche le message d'accueil de l'agent
-      directLine.postActivity({ localTimezone:Intl.DateTimeFormat().resolvedOptions().timeZone, locale:"fr-FR", name:"startConversation", type:"event" }).subscribe();
-      abo.unsubscribe();
-    } } });
-  chatStore = window.WebChat.createStore({}, middleware);
-  window.WebChat.renderWebChat({ directLine, store:chatStore, locale:"fr-FR", styleOptions:STYLE }, document.getElementById("webchat"));
-  chatMode="webchat";
-  surveillerIdentifiants();
-  fileAttente.splice(0).forEach(q=>envoyer(q));
+/* Une tentative de connexion Direct Line (secret) sur un domaine : Web Chat ouvre la connexion,
+   la page suit connectionStatus$ (2 = en ligne ; 3, 4, 5 = jeton expiré, échec, fin). */
+let basculeDirectLine=false;   // vrai pendant l'abandon d'une connexion en échec
+const ID_UTILISATEUR = "baliseia_" + Math.random().toString(36).slice(2, 10);   // identifiant de l'utilisateur pour cette session
+function connexionDirectLine(secret, domaine){
+  return new Promise((resoudre, rejeter)=>{
+    const directLine = window.WebChat.createDirectLine(domaine ? { secret, domain:domaine } : { secret });
+    const store = window.WebChat.createStore({}, middleware);
+    window.WebChat.renderWebChat({ directLine, store, userID:ID_UTILISATEUR, locale:"fr-FR", styleOptions:STYLE }, document.getElementById("webchat"));
+    let fini=false, abo=null;
+    const fin = err => { if(fini) return; fini=true; clearTimeout(tempo); abo && abo.unsubscribe();
+      if(err){ basculeDirectLine=true; try{ directLine.end(); }catch(e){} setTimeout(()=>{ basculeDirectLine=false; }, 3000); rejeter(err); }
+      else resoudre({ directLine, store }); };
+    const tempo = setTimeout(()=>fin(new Error("délai de connexion dépassé")), DELAI_CONNEXION_MS);
+    abo = directLine.connectionStatus$.subscribe({
+      next(statut){
+        if(statut===2){   // en ligne : startConversation déclenche le message d'accueil de l'agent
+          /* Direct Line (secret) exige un expéditeur : même identifiant que celui de Web Chat */
+          directLine.postActivity({ type:"event", name:"startConversation", locale:"fr-FR", from:{ id:ID_UTILISATEUR, role:"user" } })
+            .subscribe({ error(e){ console.info("BaliseIA – startConversation refusé :", e && e.message); } });
+          fin(null);
+        } else if(statut===3 || statut===4 || statut===5) fin(new Error(`statut Direct Line ${statut}`));
+      },
+      error(e){ fin(e); } });
+  });
+}
+/* Erreurs internes de Web Chat levées par une connexion abandonnée : attendues, non affichées */
+window.addEventListener("error", e=>{ if(basculeDirectLine){ e.preventDefault(); console.info("BaliseIA – erreur ignorée pendant la bascule Direct Line :", e.message); } });
+window.addEventListener("unhandledrejection", e=>{ if(basculeDirectLine){ e.preventDefault(); console.info("BaliseIA – rejet ignoré pendant la bascule Direct Line"); } });
+/* Indicateur de connexion de l'en-tête du chat */
+function etatChat(etat){
+  const b=document.getElementById("etatChat"), LIB={"en-ligne":"En ligne",iframe:"Mode iframe",connexion:"Connexion…"};
+  b.className="etat-"+etat; b.textContent=`BaliseIA – ${LIB[etat]}`; b.title=etat==="iframe"?"Chat de repli Copilot Studio (mise en forme limitée)":"";
+}
+async function initChat(){
+  etatChat("connexion");
+  const secret=secretActif();
+  if(!secret) return modeIframe("aucun secret Direct Line configuré");
+  try{ await chargerScript(WEBCHAT_JS); } catch(e){ return modeIframe(e.message); }
+  for(const domaine of DOMAINES_DIRECTLINE){
+    try{
+      const { store } = await connexionDirectLine(secret, domaine);
+      chatStore=store; chatMode="webchat"; etatChat("en-ligne");
+      console.info("BaliseIA – Direct Line connecté :", domaine || "domaine par défaut");
+      surveillerIdentifiants();
+      fileAttente.splice(0).forEach(q=>envoyer(q));
+      return;
+    } catch(e){ console.info("BaliseIA – échec Direct Line :", domaine || "domaine par défaut", "–", e.message); }
+  }
+  modeIframe("connexion Direct Line impossible");
 }
 function modeIframe(raison){
-  if(raison) console.warn("BaliseIA – passage en mode iframe :", raison);
+  console.info("BaliseIA – mode iframe (mise en forme limitée) :", raison||"repli");
+  etatChat("iframe");
   chatMode="iframe"; chatStore=null;
   const f=document.createElement("iframe");
   f.src=iframeActive(); f.title="BaliseIA – Agent Copilot Studio"; f.id="iframeAgent";
   f.setAttribute("allow","clipboard-write; microphone");
-  const w=document.getElementById("webchat"); w.innerHTML=""; w.appendChild(f);
-  document.getElementById("mode").classList.add("visible");
+  const cadre=document.createElement("div"); cadre.className="chat-frame"; cadre.appendChild(f);
+  const w=document.getElementById("webchat"); w.innerHTML=""; w.appendChild(cadre);
   fileAttente.splice(0).forEach(q=>copier(q));
-}
-async function initChat(){
-  const endpoint=tokenActif();
-  if(!endpoint) return modeIframe("aucun TOKEN_ENDPOINT configuré");
-  try{ await connecterWebChat(endpoint); } catch(e){ modeIframe(e.message); }
 }
 /* Identifiants EQ-… / INC-… jamais coupés dans les réponses Markdown */
 function surveillerIdentifiants(){
+  if(surveillerIdentifiants.actif) return; surveillerIdentifiants.actif=true;
   const RX=/\b(?:EQ|INC|INT|TECH|REC)-[A-Z0-9-]*[0-9A-Z]/g, zone=document.getElementById("webchat");
   let prevu=false;
   const traiter=()=>{ prevu=false;
@@ -1303,9 +1507,9 @@ function envoyer(q){
   else if(chatMode==="iframe") copier(q);
   else fileAttente.push(q);
 }
-const QUESTIONS=["Combien de pannes à Dakar en 2025 ?","Quels équipements traiter en priorité ?",
-  "Pourquoi EQ-DAK-SIM-06 est-il en tête ?","Fais la synthèse de décembre 2025.",
-  "Donne-moi le détail de l'incident INC-0092.","Quelles anomalies as-tu trouvées ?"];
+const QUESTIONS=["Quels équipements traiter en priorité ?","Pourquoi EQ-DAK-SIM-06 est-il en tête ?",
+  "Quelle est la cause principale de EQ-DAK-SIM-08 ?","Nouvelle panne de connectique sur EQ-DAK-SIM-06 : que dois-je préparer ?",
+  "Fais la synthèse de décembre 2025.","Quelles anomalies as-tu trouvées ?"];
 QUESTIONS.forEach(q=>{ const b=document.createElement("button"); b.type="button"; b.textContent=q; b.onclick=()=>envoyer(q); document.getElementById("lQuestions").appendChild(b); });
 
 document.getElementById("btnFermerColler").onclick=()=>{ document.getElementById("aColler").hidden=true; };
@@ -1316,17 +1520,24 @@ function extraireUrl(txt){ txt=(txt||"").trim(); const m=txt.match(/src\s*=\s*["
 const msgConfig=t=>document.getElementById("msgConfig").textContent=t;
 document.getElementById("btnConfig").onclick=()=>{
   document.getElementById("config").classList.toggle("ouvert");
-  document.getElementById("champToken").value=tokenActif();
+  document.getElementById("champSecret").value="";
+  document.getElementById("champSecret").placeholder = secretActif() ? "Secret enregistré (laisser vide pour le conserver)" : "Secret 1 du canal Direct Line de l'agent";
   document.getElementById("champIframe").value=iframeActive();
 };
 document.getElementById("btnConnecter").onclick=()=>{
-  const tk=document.getElementById("champToken").value.trim(), ifr=extraireUrl(document.getElementById("champIframe").value);
-  if(tk && !estUrl(tk)) return msgConfig("Token endpoint invalide (doit commencer par https://).");
-  ecrire(CLE_TOKEN, tk===TOKEN_ENDPOINT ? "" : tk); ecrire(CLE_AGENT, ifr===COPILOT_URL ? "" : ifr);
+  const sec=document.getElementById("champSecret").value.trim(), ifr=extraireUrl(document.getElementById("champIframe").value);
+  if(sec && !secretValide(sec)) return msgConfig("Secret Direct Line invalide.");
+  if(sec) ecrire(CLE_SECRET, sec===DIRECTLINE_SECRET ? "" : sec);
+  ecrire(CLE_AGENT, ifr===COPILOT_URL ? "" : ifr);
   location.reload();   // une seule conversation : on recharge plutôt que d'en ouvrir une seconde
 };
 document.getElementById("btnOnglet").onclick=()=>window.open(extraireUrl(document.getElementById("champIframe").value)||iframeActive(),"_blank","noopener");
-document.getElementById("btnDefaut").onclick=()=>{ ecrire(CLE_TOKEN,""); ecrire(CLE_AGENT,""); location.reload(); };
+document.getElementById("btnDefaut").onclick=()=>{ ecrire(CLE_SECRET,""); ecrire(CLE_AGENT,""); location.reload(); };
+
+/* Hauteur réelle du bandeau (il passe sur deux lignes sur écran étroit) : place le chat 16 px dessous */
+const bandeau=document.querySelector(".bandeau");
+const majBandeau=()=>document.documentElement.style.setProperty("--hb",Math.ceil(bandeau.getBoundingClientRect().height)+"px");
+new ResizeObserver(majBandeau).observe(bandeau); majBandeau();
 
 /* ====================== Démarrage ====================== */
 poserIcones(); poserSources();
@@ -1339,15 +1550,28 @@ initChat();
 """
 
 
-def main():
+def main(partage=False):
     data = json.loads(DATA.read_text(encoding="utf-8"))
     # « </ » échappé pour qu'aucune chaîne ne puisse fermer la balise <script>
     js = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     logo = (f'<img class="logo" src="data:image/png;base64,{base64.b64encode(LOGO.read_bytes()).decode()}" alt="Logo ASECNA">'
             if LOGO.exists() else "")
-    SORTIE.write_text(GABARIT.replace("__LOGO__", logo).replace("__DATA__", js), encoding="utf-8")
-    print(f"{SORTIE.name} généré ({SORTIE.stat().st_size // 1024} Ko)")
+    # Version de partage : le secret n'est jamais lu, le chat utilise l'iframe Copilot Studio
+    secret = "" if partage else (SECRET.read_text(encoding="utf-8").strip() if SECRET.exists() else "")
+    sortie = SORTIE_PARTAGE if partage else SORTIE
+    marqueur = 'const DIRECTLINE_SECRET = "__DIRECTLINE_SECRET__";'
+    assert GABARIT.count(marqueur) == 1
+    page = GABARIT.replace("__LOGO__", logo).replace(marqueur, f'const DIRECTLINE_SECRET = "{(secret or SECRET_A_COLLER).replace(chr(34), "")}";')
+    page = page.replace("__DATA__", js)
+    if partage and SECRET.exists():   # garde-fou : le secret ne doit apparaître nulle part dans la version partagée
+        assert SECRET.read_text(encoding="utf-8").strip() not in page, "secret détecté dans la version de partage"
+    sortie.write_text(page, encoding="utf-8")
+    if secret:
+        print("Secret Direct Line injecté depuis directline_secret.txt – ne pas publier ni versionner le HTML généré.")
+    if partage:
+        print("Version de partage SANS secret : le chat passe par l'iframe Copilot Studio.")
+    print(f"{sortie.name} généré ({sortie.stat().st_size // 1024} Ko)")
 
 
 if __name__ == "__main__":
-    main()
+    main(partage="--partage" in sys.argv)

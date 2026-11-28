@@ -29,6 +29,10 @@ ANNEE_REF = 2026
 CRITICITE_NUM = {"FAIBLE": 1, "MOYENNE": 2, "ELEVEE": 3}
 POIDS = {"pannes": 0.4, "criticite": 0.3, "duree": 0.2, "anciennete": 0.1}
 SEUIL_INCIDENT_LONG_H = 24
+CAUSE_AUCUNE = "Aucune cause dominante"
+# Libellés français des types de panne (causes ex aequo affichées comme l'agent BaliseIA)
+LIB_PANNE = {"alimentation": "alimentation", "usure": "usure", "connectique": "connectique", "humidite": "humidité",
+             "cause_indeterminee": "cause indéterminée", "lampe_defectueuse": "lampe défectueuse"}
 # Incohérences type de panne / action corrective
 INCOHERENCES = {
     "lampe_defectueuse": {"sechage"},
@@ -230,21 +234,99 @@ def main():
         sys.exit(1)
     print("Contrôles Base BaliseIA : OK (%d vérifications)" % len(controles_base))
 
-    # Écarts (d'arrondi) entre la Base et le recalcul : signalés, non bloquants
+    # -----------------------------------------------------------------------
+    # Base corrigée : UNE seule source pour le score et la cause principale de
+    # chaque équipement, utilisée partout (tableaux, fiches, rapport, constats).
+    # Chaque écart ou correction est tracé dans data.json (ecarts_base).
+    # -----------------------------------------------------------------------
     ecarts = []
+    # a) Écarts d'arrondi Base / recalcul : la valeur de la Base est conservée
     for l in eq.itertuples():
         b = base[l.equipement_id]
         calc = {"score": float(l.score), "mttr": None if pd.isna(l.mttr) else round(float(l.mttr), 1)}
-        for champ in ("score", "mttr"):
+        for champ, nom in (("score", "Score"), ("mttr", "MTTR (h)")):
             if calc[champ] != b[champ]:
-                ecarts.append({"equipement_id": l.equipement_id, "champ": champ, "base": b[champ], "recalcul": calc[champ]})
+                ecarts.append({"element": l.equipement_id, "champ": nom, "base": b[champ], "autre": calc[champ],
+                               "traitement": "Valeur de la Base conservée (écart d'arrondi avec le recalcul)"})
+    # b) Cause principale : si chaque type de panne n'apparaît qu'une fois, il n'y a pas de cause dominante
+    for eq_id, b in base.items():
+        types = pannes.loc[pannes["equipement_id"] == eq_id, "type_panne"].value_counts()
+        if len(types) >= 2 and types.max() == 1 and b["cause"] != CAUSE_AUCUNE:
+            ecarts.append({"element": eq_id, "champ": "Cause principale", "base": b["cause"], "autre": CAUSE_AUCUNE,
+                           "traitement": f"Corrigé : chacun des {len(types)} types de panne n'apparaît qu'une fois"})
+            b["cause"] = CAUSE_AUCUNE
+    # b bis) Égalité entre plusieurs types (au moins 2 pannes chacun) : causes affichées ex aequo,
+    #        par ordre alphabétique (« Alimentation et usure (ex aequo) ») ; le constat de la
+    #        recommandation liée cite la cause retenue par la Base en premier, puis les autres.
+    for eq_id, b in base.items():
+        p_eq = pannes[pannes["equipement_id"] == eq_id]
+        types = p_eq["type_panne"].value_counts()
+        if len(types) < 2 or types.max() < 2 or (types == types.max()).sum() < 2:
+            continue
+        ex = sorted(types[types == types.max()].index, key=lambda t: LIB_PANNE.get(t, t))
+        libelle = " et ".join(LIB_PANNE.get(t, t) for t in ex)
+        libelle = libelle[0].upper() + libelle[1:] + " (ex aequo)"
+        ecarts.append({"element": eq_id, "champ": "Cause principale", "base": b["cause"], "autre": libelle,
+                       "traitement": f"Corrigé : {len(ex)} causes à égalité ({int(types.max())} pannes chacune)"})
+        cause_base = b["cause"]
+        b["cause"] = libelle
+        ordre = ([cause_base] if cause_base in ex else []) + [t for t in ex if t != cause_base]
+        ids = lambda t: ", ".join(sorted(p_eq.loc[p_eq["type_panne"] == t, "incident_id"]))
+        nouveau = "Cause principale ex aequo : " + " et ".join(f"{t} ({ids(t)})" for t in ordre) + "."
+        for r in recos:
+            if r["equipement_id"] == eq_id:
+                m = re.search(r"Cause principale : \w+ \([^)]*\)\.", r["constat"])
+                if m:
+                    ecarts.append({"element": r["id"], "champ": "Cause citée dans le constat", "base": m.group(0), "autre": nouveau,
+                                   "traitement": "Corrigé : causes ex aequo citées avec leurs incidents"})
+                    r["constat"] = r["constat"].replace(m.group(0), nouveau)
+    # c) Score cité dans le constat d'une recommandation (section 11) : aligné sur la section 3
     for r in recos:
         m = re.search(r"score ([\d.]+)/100", r["constat"])
-        if r.get("equipement_id") and m and float(m.group(1)) != base[r["equipement_id"]]["score"]:
-            ecarts.append({"equipement_id": r["equipement_id"], "champ": f"score cité dans {r['id']} (section 11)",
-                           "base": base[r["equipement_id"]]["score"], "recalcul": float(m.group(1))})
+        if r["equipement_id"] and m and float(m.group(1)) != base[r["equipement_id"]]["score"]:
+            sb = base[r["equipement_id"]]["score"]
+            ecarts.append({"element": r["id"], "champ": "Score cité dans le constat", "base": float(m.group(1)), "autre": sb,
+                           "traitement": "Corrigé selon la section 3"})
+            r["constat"] = r["constat"].replace(m.group(0), f"score {sb}/100")
+    # d) Part de la cause indéterminée : exprimée en pannes hors contrôles périodiques
+    n_ind = int((pannes["type_panne"] == "cause_indeterminee").sum())
+    part = f"{n_ind} pannes sur {len(pannes)} ({round(100 * n_ind / len(pannes))} %)"
+    for r in recos:
+        m = re.search(r"\d+ incidents sur \d+ \([\d,.]+ %\)(?= ont une cause indéterminée)", r["constat"])
+        if m:
+            ecarts.append({"element": r["id"], "champ": "Part de la cause indéterminée", "base": m.group(0), "autre": part,
+                           "traitement": "Corrigé : part calculée sur les pannes hors contrôles périodiques"})
+            r["constat"] = r["constat"].replace(m.group(0), part)
+
+    # Contrôles de cohérence de la Base corrigée (bloquants)
+    def coherent(r):
+        b = base[r["equipement_id"]]
+        score_ok = f"score {b['score']}/100" in r["constat"]
+        cause_ok = (b["cause"] == CAUSE_AUCUNE and "Aucune cause dominante" in r["constat"]) or \
+                   ("(ex aequo)" in b["cause"] and "Cause principale ex aequo :" in r["constat"]) or \
+                   f"Cause principale : {b['cause']}" in r["constat"]
+        return score_ok and cause_ok
+    controles_corr = {
+        "cause_EQ-DAK-SIM-08": (base["EQ-DAK-SIM-08"]["cause"], CAUSE_AUCUNE),
+        "score_EQ-DAK-SIM-01": (base["EQ-DAK-SIM-01"]["score"], 65.2),
+        "REC-06_score_65.2": ("score 65.2/100" in next(r for r in recos if r["id"] == "REC-06")["constat"], True),
+        "causes_ex_aequo": ([base[e]["cause"] for e in ("EQ-DAK-SIM-02", "EQ-ABJ-SIM-04", "EQ-NIM-SIM-02", "EQ-NIM-SIM-10")],
+                            ["Alimentation et usure (ex aequo)", "Cause indéterminée et lampe défectueuse (ex aequo)",
+                             "Cause indéterminée et usure (ex aequo)", "Cause indéterminée et connectique (ex aequo)"]),
+        "REC-03_ex_aequo": ("ex aequo : alimentation (INC-0031, INC-0125) et usure (INC-0095, INC-0149)"
+                            in next(r for r in recos if r["id"] == "REC-03")["constat"], True),
+        "REC-10_ex_aequo": ("ex aequo : lampe_defectueuse (INC-0029, INC-0147) et cause_indeterminee (INC-0090, INC-0128)"
+                            in next(r for r in recos if r["id"] == "REC-10")["constat"], True),
+        "REC-T1_part": ("30 pannes sur 152 (20 %)" in next(r for r in recos if r["id"] == "REC-T1")["constat"], True),
+        "recommandations_coherentes": ([r["id"] for r in recos if r["equipement_id"] and not coherent(r)], []),
+    }
+    erreurs = [f"  - {k} : attendu {a!r}, obtenu {o!r}" for k, (o, a) in controles_corr.items() if o != a]
+    if erreurs:
+        print("ÉCHEC des contrôles de la Base corrigée :\n" + "\n".join(erreurs))
+        sys.exit(1)
+    print("Contrôles Base corrigée : OK (%d vérifications)" % len(controles_corr))
     for e in ecarts:
-        print(f"  Écart signalé : {e['equipement_id']} {e['champ']} – Base section 3 = {e['base']}, autre valeur = {e['recalcul']}")
+        print(f"  {e['element']} – {e['champ']} : {e['base']} -> {e['autre']} ({e['traitement']})")
 
     # Délai entre le début de l'incident et l'intervention (heures)
     fus["delai_h"] = (pd.to_datetime(fus["date_intervention"]) - pd.to_datetime(fus["debut"])).dt.total_seconds() / 3600

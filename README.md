@@ -29,9 +29,17 @@ Si un chiffre attendu diffère, `prepare_data.py` affiche l'écart et s'arrête 
 - **Contrôles des données** (16, inchangés) : 180 incidents, 152 pannes, 1 357,3 h, 7,7 h, MTTR 8,0 h, 136 / 44, pannes par site, Dakar 2025 = 43, pic mensuel 15, pièces, top 5, top 3 du score, 63 anomalies.
 - **Contrôles de la Base** (6) : 30 lignes en section 3, équipements connus, EQ-DAK-SIM-01 score 65,2, EQ-DAK-SIM-02 MTTR 7,4 h, top 3 de la Base, REC-01 à REC-10 et REC-T1 à REC-T4.
 
-Les écarts d'arrondi entre la Base et le recalcul sont signalés sans bloquer le script, et affichés dans la page Qualité des données :
-- EQ-DAK-SIM-02, MTTR : 7,4 dans la Base, 7,5 recalculé ;
-- EQ-DAK-SIM-01, score : 65,2 dans la Base, 65,3 recalculé, et 65,3 dans le texte de REC-06.
+- **Contrôles de la Base corrigée** (5) : EQ-DAK-SIM-08 sans cause dominante, EQ-DAK-SIM-01 à 65,2, REC-06 citant 65,2, REC-T1 citant « 30 pannes sur 152 (20 %) », et cohérence de score et de cause entre chaque recommandation et la section 3.
+
+**Base corrigée : une seule source.** Le score et la cause principale de chaque équipement viennent de `data.json` et sont identiques partout : tableaux, fiches, accueil, rapport. Corrections appliquées, toutes listées dans la page Qualité des données :
+- **Cause principale.** Quand chaque type de panne n'apparaît qu'une fois, la cause devient « Aucune cause dominante ». Cela concerne EQ-DAK-SIM-08, EQ-ABJ-SIM-06, EQ-ABJ-SIM-03, EQ-NIM-SIM-01, EQ-NIM-SIM-09, EQ-ABJ-SIM-02 et EQ-DAK-SIM-05. Pour les égalités à 2 ou 3 pannes, le choix de la Base est conservé.
+- **Score dans REC-06.** Le texte indiquait 65,3 ; il est aligné sur la section 3 (65,2).
+- **Part de la cause indéterminée dans REC-T1.** « 30 incidents sur 180 (16,7 %) » devient « 30 pannes sur 152 (20 %) ».
+- **Écarts d'arrondi avec le recalcul** : la valeur de la Base est conservée.
+  - EQ-DAK-SIM-02, MTTR : 7,4 dans la Base, 7,5 recalculé ;
+  - EQ-DAK-SIM-01, score : 65,2 dans la Base, 65,3 recalculé.
+
+Les textes de la Base sont accordés automatiquement : 0 devient « aucun incident », et 1 donne « 1 incident ».
 
 Sous Windows, si les accents s'affichent mal dans la console : `set PYTHONIOENCODING=utf-8`.
 
@@ -89,6 +97,15 @@ Le filtre de site (Tous | Dakar | Niamey | Abidjan) s'applique à toutes les pag
   - Le journal de validation peut être exporté en CSV (séparateur `;`, compatible Excel).
   - Les décisions sont conservées dans le `localStorage` du navigateur. « Réinitialiser la démo » efface les décisions et le journal.
   - **Aucune action n'est déclenchée automatiquement : la décision appartient à l'expert métier.**
+  - **Cartes allégées.** Chaque carte affiche le constat, la recommandation, le statut, et deux boutons : « Décider » et « Demander plus d'infos ».
+    - « Décider » déplie le formulaire : nom du validateur, commentaire, Valider, Rejeter, Annuler.
+    - Ouverte par « Examiner », une carte a son formulaire déjà déplié.
+  - **Ordre de travail.** Une recommandation validée, y compris transverse, propose « Générer l'ordre de travail ».
+    - Le numéro suit la série OT-2026-001, 002… ; le compteur est conservé dans le navigateur, et « Réinitialiser la démo » le remet à 001.
+    - L'OT s'ouvre dans une fiche d'intervention A4 imprimable : équipement, constat, action, pièces à préparer, champs à remplir, validation et signatures.
+    - La pastille de la carte devient « Validée · OT-2026-00x ».
+    - Le journal reçoit une ligne « OT généré », sa colonne N° OT se remplit, et l'export CSV inclut le numéro.
+    - « Envoyer au chef d'équipe » prépare un e-mail : son objet suit le format « OT – équipement – action », et le corps contient le résumé.
 - **Rapports** : choisissez une période (un mois ou toute la période) et un site, puis cliquez sur « Générer le rapport ». Le rapport A4 imprimable contient :
   - une page de garde ;
   - 1. Synthèse : 3 à 5 constats rédigés automatiquement, comparés au mois précédent ;
@@ -100,7 +117,7 @@ Le filtre de site (Tous | Dakar | Niamey | Abidjan) s'applique à toutes les pag
   - 7. Recommandations, avec leur statut de validation et le n° d'OT ;
   - 8. Méthode et limites.
 
-  « Imprimer / Enregistrer en PDF » n'imprime que le rapport. Chaque page imprimée porte le pied de page « BaliseIA – Rapport généré le … – page X/Y – … ». Le bouton « Demander à BaliseIA de commenter ce rapport » envoie la demande au chat.
+  « Imprimer / Enregistrer en PDF » n'imprime que le rapport. Sauts de page uniquement après la page de garde, puis avant les sections 5, 6 et 7. Le rapport « Toute la période / Tous » fait 7 pages, « 2025-12 / Tous » en fait 6. Les incidents non clôturés sont regroupés sur une seule ligne. Dans la fenêtre d'impression, décochez « En-têtes et pieds de page ». Chaque page imprimée porte le pied de page « BaliseIA – Rapport généré le … – page X/Y – … ». Le bouton « Demander à BaliseIA de commenter ce rapport » envoie la demande au chat.
 - **Analyses** :
   - pannes par équipement (top 10, égalités départagées par score) ;
   - pannes par site, ou par famille si un site est filtré ;
@@ -113,7 +130,7 @@ Le filtre de site (Tous | Dakar | Niamey | Abidjan) s'applique à toutes les pag
   - la recommandation liée, avec son statut ;
   - un bouton « Demander à BaliseIA ».
 - **Qualité des données** : tableau complet des anomalies avec le traitement appliqué, et les écarts d'arrondi entre la Base et le recalcul.
-- **BaliseIA** : le chat en pleine page. Sur les autres pages, le bouton rond en bas à droite ouvre le même chat dans un panneau latéral (une seule conversation).
+- **BaliseIA** : le chat en pleine page. L'en-tête du chat indique l'état de la connexion : point vert « En ligne » (Web Chat connecté), point orange « Mode iframe » (repli), point gris « Connexion… » (tentative en cours). Sur les autres pages, le bouton rond en bas à droite ouvre le même chat dans un panneau latéral (une seule conversation).
 
 Palette sémantique :
 
@@ -125,17 +142,49 @@ Palette sémantique :
 | Vert | validé |
 | Gris | rejeté, texte secondaire |
 
-## Brancher l'agent Copilot Studio
+## Partager la page sans le secret
 
-### Chat personnalisé (recommandé)
-1. Dans Copilot Studio, ouvrez **Canaux → Application mobile** (ou « Web personnalisé »). Copiez le **token endpoint** (`https://…/powervirtualagents/botsbyschema/…/directline/token?api-version=2022-03-01-preview`). L'agent doit être en « Aucune authentification ».
-2. Dans `build_dashboard.py`, remplacez la valeur de `const TOKEN_ENDPOINT = "COLLEZ_ICI_LE_TOKEN_ENDPOINT";`, puis relancez `python build_dashboard.py`.
-3. La connexion suit le modèle officiel de Microsoft : `regionalchannelsettings`, puis domaine Direct Line régional, puis jeton, puis `WebChat.createDirectLine`. La page envoie ensuite l'événement `startConversation` pour afficher le message d'accueil.
+```bash
+python build_dashboard.py --partage
+```
 
-Les questions suggérées et tous les boutons « Demander… » envoient la question directement au chat et ouvrent le panneau. L'indicateur « BaliseIA analyse les données… » reste affiché jusqu'au message du bot. Au bout de 90 s, il est remplacé par un message d'avertissement.
+Cette commande produit `BaliseIA_dashboard_G4_partage.html`, le fichier à diffuser.
+- Il est identique à la page principale, sauf qu'il **ne contient pas le secret** : `directline_secret.txt` n'est jamais lu, et un contrôle bloque la génération si le secret s'y retrouvait.
+- Le chat passe par l'iframe Copilot Studio de l'agent BaliseIA v2, qui fonctionne sans connexion. Son bandeau interne est masqué.
+- Les questions suggérées sont alors copiées dans le presse-papiers : collez-les avec Ctrl+V.
+- `BaliseIA_dashboard_G4.html` (avec le secret) reste pour un usage local uniquement.
 
-### Mode de repli (iframe)
-Si `TOKEN_ENDPOINT` est vide ou si la connexion échoue, la page affiche l'iframe `COPILOT_URL` avec le bandeau « Mode iframe (mise en forme limitée) ». Dans ce mode, les questions sont copiées dans le presse-papiers.
+## Brancher l'agent Copilot Studio (secret Direct Line)
 
-### Depuis la page
-Le bouton **Changer l'agent** du panneau de chat permet de saisir un autre token endpoint, ou une URL ou un code `<iframe>`. Ces réglages sont mémorisés dans ce navigateur, puis la page se recharge. **Agent par défaut** efface ces réglages.
+> **Secret de démonstration : ne publiez pas le HTML généré, ne le versionnez pas, et régénérez le secret après l'événement.**
+> Le secret est visible par toute personne qui ouvre la page.
+> `BaliseIA_dashboard_G4.html` et `directline_secret.txt` sont listés dans `.gitignore`, et le HTML a été retiré du suivi git.
+
+1. Dans Copilot Studio, ouvrez **Paramètres → Sécurité → Sécurité web**, ou **Canaux → Direct Line**, puis copiez le **Secret 1**.
+2. Collez-le de l'une de ces deux façons :
+   - **(recommandé)** dans un fichier `directline_secret.txt`, à côté de `build_dashboard.py`, puis lancez `python build_dashboard.py` : le secret est injecté dans `const DIRECTLINE_SECRET` sans jamais apparaître dans un fichier versionné ;
+   - ou directement dans le HTML généré, à la place de `<COLLER ICI LE SECRET 1>`.
+3. Variante sans régénérer la page : panneau de chat → **Changer l'agent** → champ « Secret Direct Line ». Le secret est alors conservé dans ce navigateur uniquement.
+
+**Connexion :**
+- `WebChat.createDirectLine({ secret })` sur le domaine par défaut (directline.botframework.com) ;
+- en cas d'échec (statut 3, 4 ou 5, ou délai de 20 s dépassé), nouvel essai sur `https://europe.directline.botframework.com/v3/directline` ;
+- si ce second essai échoue aussi, repli sur l'iframe `COPILOT_URL` (agent `cr8ee_baliseiav2_RgZI7Z`), sans bandeau visible ; l'information est écrite en `console.info`.
+
+Une fois la conversation en ligne, la page envoie l'événement `startConversation` (`locale: "fr-FR"`), qui déclenche le message d'accueil de l'agent.
+
+**Mise en page :**
+- colonne centrée de 860 px au maximum, avec des marges de 24 px ;
+- réponses de l'agent sans bulle, sur toute la largeur ;
+- questions de l'utilisateur dans une bulle #eef3f8 à droite ;
+- police Segoe UI 15 px ;
+- tableaux Markdown avec défilement horizontal, identifiants jamais coupés ;
+- zone de saisie arrondie, sans bouton de pièce jointe ;
+- un seul en-tête « BaliseIA – En ligne ».
+
+**Comportement :**
+- l'indicateur « BaliseIA analyse les données… » (trois points) reste affiché jusqu'au message de l'agent ; au bout de 90 s, il affiche un message d'excuse ;
+- les questions suggérées et les boutons « Demander… » envoient directement la question ;
+- la page Assistant et le panneau latéral partagent une seule conversation.
+
+En mode iframe, le bandeau interne de Copilot Studio (48 px) est masqué par `--copilot-header`.

@@ -2936,7 +2936,7 @@
     "pannes": 5,
     "duree": 75.7,
     "mttr": 6.7,
-    "cause": "connectique",
+    "cause": "Aucune cause dominante",
     "piece": "fusible",
     "score": 74.2
    }
@@ -2961,7 +2961,7 @@
     "pannes": 6,
     "duree": 40.3,
     "mttr": 7.4,
-    "cause": "alimentation",
+    "cause": "Alimentation et usure (ex aequo)",
     "piece": "fusible",
     "score": 71.7
    }
@@ -3136,7 +3136,7 @@
     "pannes": 4,
     "duree": 28.5,
     "mttr": 5.7,
-    "cause": "lampe_defectueuse",
+    "cause": "Cause indéterminée et lampe défectueuse (ex aequo)",
     "piece": "module",
     "score": 55.6
    }
@@ -3161,7 +3161,7 @@
     "pannes": 5,
     "duree": 25.0,
     "mttr": 5.6,
-    "cause": "usure",
+    "cause": "Cause indéterminée et usure (ex aequo)",
     "piece": "fusible",
     "score": 53.5
    }
@@ -3211,7 +3211,7 @@
     "pannes": 4,
     "duree": 24.6,
     "mttr": 8.2,
-    "cause": "humidite",
+    "cause": "Aucune cause dominante",
     "piece": "module",
     "score": 52.0
    }
@@ -3261,7 +3261,7 @@
     "pannes": 7,
     "duree": 43.5,
     "mttr": 6.9,
-    "cause": "connectique",
+    "cause": "Cause indéterminée et connectique (ex aequo)",
     "piece": "fusible",
     "score": 45.6
    }
@@ -3361,7 +3361,7 @@
     "pannes": 3,
     "duree": 24.2,
     "mttr": 6.0,
-    "cause": "alimentation",
+    "cause": "Aucune cause dominante",
     "piece": "lampe",
     "score": 34.7
    }
@@ -3386,7 +3386,7 @@
     "pannes": 4,
     "duree": 19.2,
     "mttr": 5.7,
-    "cause": "humidite",
+    "cause": "Aucune cause dominante",
     "piece": "module",
     "score": 34.1
    }
@@ -3536,7 +3536,7 @@
     "pannes": 4,
     "duree": 32.4,
     "mttr": 8.9,
-    "cause": "alimentation",
+    "cause": "Aucune cause dominante",
     "piece": "fusible",
     "score": 25.5
    }
@@ -3561,7 +3561,7 @@
     "pannes": 3,
     "duree": 30.5,
     "mttr": 4.4,
-    "cause": "alimentation",
+    "cause": "Aucune cause dominante",
     "piece": "lampe",
     "score": 21.9
    }
@@ -3611,7 +3611,7 @@
     "pannes": 3,
     "duree": 32.9,
     "mttr": 7.2,
-    "cause": "usure",
+    "cause": "Aucune cause dominante",
     "piece": "aucune",
     "score": 15.1
    }
@@ -3672,7 +3672,7 @@
    "site": "DAK-SIM",
    "localisation": "SECTEUR-3",
    "titre": "EQ-DAK-SIM-02",
-   "constat": "rang 3/30, score 71.7/100. Criticité ELEVEE, installé en 2011 (15 ans). 6 incidents dont 6 pannes hors contrôles, 40.3 h d'indisponibilité, MTTR 7.4 h, 1 incident(s) encore EN_COURS. Cause principale : alimentation (2 fois : INC-0031, INC-0125). Pièce la plus remplacée : fusible (1 fois).",
+   "constat": "rang 3/30, score 71.7/100. Criticité ELEVEE, installé en 2011 (15 ans). 6 incidents dont 6 pannes hors contrôles, 40.3 h d'indisponibilité, MTTR 7.4 h, 1 incident(s) encore EN_COURS. Cause principale ex aequo : alimentation (INC-0031, INC-0125) et usure (INC-0095, INC-0149). Pièce la plus remplacée : fusible (1 fois).",
    "recommandation": "Contrôle de l'alimentation et du régulateur associé (tension, fusibles, protections) ; vu l'ancienneté, étudier le renouvellement de l'équipement ; informer le responsable de quart (criticité ÉLEVÉE).",
    "statut_base": "A_VALIDER"
   },
@@ -3705,7 +3705,7 @@
    "site": "DAK-SIM",
    "localisation": "SECTEUR-2",
    "titre": "EQ-DAK-SIM-01",
-   "constat": "rang 6/30, score 65.3/100. Criticité ELEVEE, installé en 2020 (6 ans). 5 incidents dont 5 pannes hors contrôles, 72.0 h d'indisponibilité, MTTR 14.4 h, 0 incident(s) encore EN_COURS. Cause principale : cause_indeterminee (2 fois : INC-0057, INC-0084). Pièce la plus remplacée : fusible (2 fois).",
+   "constat": "rang 6/30, score 65.2/100. Criticité ELEVEE, installé en 2020 (6 ans). 5 incidents dont 5 pannes hors contrôles, 72.0 h d'indisponibilité, MTTR 14.4 h, 0 incident(s) encore EN_COURS. Cause principale : cause_indeterminee (2 fois : INC-0057, INC-0084). Pièce la plus remplacée : fusible (2 fois).",
    "recommandation": "Diagnostic approfondi : la cause n'est pas identifiée, améliorer la saisie des fiches d'intervention ; informer le responsable de quart (criticité ÉLEVÉE).",
    "statut_base": "A_VALIDER"
   },
@@ -3749,7 +3749,7 @@
    "site": "ABJ-SIM",
    "localisation": "SECTEUR-1",
    "titre": "EQ-ABJ-SIM-04",
-   "constat": "rang 10/30, score 55.6/100. Criticité ELEVEE, installé en 2015 (11 ans). 4 incidents dont 4 pannes hors contrôles, 28.5 h d'indisponibilité, MTTR 5.7 h, 1 incident(s) encore EN_COURS. Cause principale : lampe_defectueuse (2 fois : INC-0029, INC-0147). Pièce la plus remplacée : module (1 fois).",
+   "constat": "rang 10/30, score 55.6/100. Criticité ELEVEE, installé en 2015 (11 ans). 4 incidents dont 4 pannes hors contrôles, 28.5 h d'indisponibilité, MTTR 5.7 h, 1 incident(s) encore EN_COURS. Cause principale ex aequo : lampe_defectueuse (INC-0029, INC-0147) et cause_indeterminee (INC-0090, INC-0128). Pièce la plus remplacée : module (1 fois).",
    "recommandation": "Remplacement préventif groupé des lampes du lot concerné ; informer le responsable de quart (criticité ÉLEVÉE).",
    "statut_base": "A_VALIDER"
   },
@@ -3760,7 +3760,7 @@
    "site": null,
    "localisation": null,
    "titre": "Qualité du diagnostic",
-   "constat": "30 incidents sur 180 (16,7 %) ont une cause indéterminée ; c'est la cause principale du site NIM-SIM.",
+   "constat": "30 pannes sur 152 (20 %) ont une cause indéterminée ; c'est la cause principale du site NIM-SIM.",
    "recommandation": "rendre la cause obligatoire dans la fiche d'intervention et former les techniciens au diagnostic.",
    "statut_base": "A_VALIDER"
   },
@@ -3800,22 +3800,123 @@
  ],
  "ecarts_base": [
   {
-   "equipement_id": "EQ-DAK-SIM-02",
-   "champ": "mttr",
+   "element": "EQ-DAK-SIM-02",
+   "champ": "MTTR (h)",
    "base": 7.4,
-   "recalcul": 7.5
+   "autre": 7.5,
+   "traitement": "Valeur de la Base conservée (écart d'arrondi avec le recalcul)"
   },
   {
-   "equipement_id": "EQ-DAK-SIM-01",
-   "champ": "score",
+   "element": "EQ-DAK-SIM-01",
+   "champ": "Score",
    "base": 65.2,
-   "recalcul": 65.3
+   "autre": 65.3,
+   "traitement": "Valeur de la Base conservée (écart d'arrondi avec le recalcul)"
   },
   {
-   "equipement_id": "EQ-DAK-SIM-01",
-   "champ": "score cité dans REC-06 (section 11)",
-   "base": 65.2,
-   "recalcul": 65.3
+   "element": "EQ-DAK-SIM-08",
+   "champ": "Cause principale",
+   "base": "connectique",
+   "autre": "Aucune cause dominante",
+   "traitement": "Corrigé : chacun des 5 types de panne n'apparaît qu'une fois"
+  },
+  {
+   "element": "EQ-ABJ-SIM-06",
+   "champ": "Cause principale",
+   "base": "humidite",
+   "autre": "Aucune cause dominante",
+   "traitement": "Corrigé : chacun des 4 types de panne n'apparaît qu'une fois"
+  },
+  {
+   "element": "EQ-ABJ-SIM-03",
+   "champ": "Cause principale",
+   "base": "alimentation",
+   "autre": "Aucune cause dominante",
+   "traitement": "Corrigé : chacun des 3 types de panne n'apparaît qu'une fois"
+  },
+  {
+   "element": "EQ-NIM-SIM-01",
+   "champ": "Cause principale",
+   "base": "humidite",
+   "autre": "Aucune cause dominante",
+   "traitement": "Corrigé : chacun des 4 types de panne n'apparaît qu'une fois"
+  },
+  {
+   "element": "EQ-NIM-SIM-09",
+   "champ": "Cause principale",
+   "base": "alimentation",
+   "autre": "Aucune cause dominante",
+   "traitement": "Corrigé : chacun des 4 types de panne n'apparaît qu'une fois"
+  },
+  {
+   "element": "EQ-ABJ-SIM-02",
+   "champ": "Cause principale",
+   "base": "alimentation",
+   "autre": "Aucune cause dominante",
+   "traitement": "Corrigé : chacun des 3 types de panne n'apparaît qu'une fois"
+  },
+  {
+   "element": "EQ-DAK-SIM-05",
+   "champ": "Cause principale",
+   "base": "usure",
+   "autre": "Aucune cause dominante",
+   "traitement": "Corrigé : chacun des 3 types de panne n'apparaît qu'une fois"
+  },
+  {
+   "element": "EQ-DAK-SIM-02",
+   "champ": "Cause principale",
+   "base": "alimentation",
+   "autre": "Alimentation et usure (ex aequo)",
+   "traitement": "Corrigé : 2 causes à égalité (2 pannes chacune)"
+  },
+  {
+   "element": "REC-03",
+   "champ": "Cause citée dans le constat",
+   "base": "Cause principale : alimentation (2 fois : INC-0031, INC-0125).",
+   "autre": "Cause principale ex aequo : alimentation (INC-0031, INC-0125) et usure (INC-0095, INC-0149).",
+   "traitement": "Corrigé : causes ex aequo citées avec leurs incidents"
+  },
+  {
+   "element": "EQ-ABJ-SIM-04",
+   "champ": "Cause principale",
+   "base": "lampe_defectueuse",
+   "autre": "Cause indéterminée et lampe défectueuse (ex aequo)",
+   "traitement": "Corrigé : 2 causes à égalité (2 pannes chacune)"
+  },
+  {
+   "element": "REC-10",
+   "champ": "Cause citée dans le constat",
+   "base": "Cause principale : lampe_defectueuse (2 fois : INC-0029, INC-0147).",
+   "autre": "Cause principale ex aequo : lampe_defectueuse (INC-0029, INC-0147) et cause_indeterminee (INC-0090, INC-0128).",
+   "traitement": "Corrigé : causes ex aequo citées avec leurs incidents"
+  },
+  {
+   "element": "EQ-NIM-SIM-02",
+   "champ": "Cause principale",
+   "base": "usure",
+   "autre": "Cause indéterminée et usure (ex aequo)",
+   "traitement": "Corrigé : 2 causes à égalité (2 pannes chacune)"
+  },
+  {
+   "element": "EQ-NIM-SIM-10",
+   "champ": "Cause principale",
+   "base": "connectique",
+   "autre": "Cause indéterminée et connectique (ex aequo)",
+   "traitement": "Corrigé : 2 causes à égalité (3 pannes chacune)"
+  },
+  {
+   "element": "REC-06",
+   "champ": "Score cité dans le constat",
+   "base": 65.3,
+   "autre": 65.2,
+   "traitement": "Corrigé selon la section 3"
+  },
+  {
+   "element": "REC-T1",
+   "champ": "Part de la cause indéterminée",
+   "base": "30 incidents sur 180 (16,7 %)",
+   "autre": "30 pannes sur 152 (20 %)",
+   "traitement": "Corrigé : part calculée sur les pannes hors contrôles périodiques"
   }
  ],
  "anomalies": [
